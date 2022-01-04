@@ -9,6 +9,8 @@ plugins {
 
 val testJavaVersion = gradle.startParameter.projectProperties.get("testJavaVersion")?.let(JavaVersion::toVersion)
 
+group = "org.curioswitch.curiostack"
+
 java {
   toolchain {
     languageVersion.set(JavaLanguageVersion.of(17))
