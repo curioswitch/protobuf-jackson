@@ -2,6 +2,8 @@ import nebula.plugin.release.git.opinion.Strategies
 import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
+  jacoco
+
   id("org.curioswitch.curiostack.java-library")
   id("org.curioswitch.curiostack.publishing")
 
