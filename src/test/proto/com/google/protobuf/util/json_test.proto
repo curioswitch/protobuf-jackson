@@ -74,6 +74,8 @@ message TestAllTypes {
   NestedEnum optional_nested_enum = 21;
   AliasedEnum optional_aliased_enum = 52;
 
+  optional int32 very_optional_int32 = 53;
+
   // Repeated
   repeated int32 repeated_int32 = 31;
   repeated int64 repeated_int64 = 32;
