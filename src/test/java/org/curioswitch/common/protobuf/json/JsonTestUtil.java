@@ -31,6 +31,7 @@ final class JsonTestUtil {
     builder.setOptionalString("Hello world!");
     builder.setOptionalBytes(ByteString.copyFrom(new byte[] {0, 1, 2}));
     builder.setOptionalNestedEnum(NestedEnum.BAR);
+    builder.setVeryOptionalInt32(50);
     builder.getOptionalNestedMessageBuilder().setValue(100);
 
     builder.addRepeatedInt32(1234);

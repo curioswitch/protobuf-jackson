@@ -339,6 +339,8 @@ final class DoWrite implements ByteCodeAppender, Implementation {
           // Only print one-of fields if they're actually set (the default of a one-of is an empty
           // one-of).
           || field.isInOneof()
+          // Only print optional marked fields if actually set
+          || field.descriptor().hasOptionalKeyword()
           // Always skip empty optional message fields. If not we will recurse indefinitely if
           // a message has itself as a sub-field.
           || (field.descriptor().isOptional() && field.valueJavaType() == JavaType.MESSAGE)) {

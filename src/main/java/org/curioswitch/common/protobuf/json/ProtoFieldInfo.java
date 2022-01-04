@@ -216,7 +216,7 @@ class ProtoFieldInfo {
 
   /** Returns whether this field is in a oneof. */
   boolean isInOneof() {
-    return field.getContainingOneof() != null;
+    return field.getContainingOneof() != null && !field.hasOptionalKeyword();
   }
 
   /**
