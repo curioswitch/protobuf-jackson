@@ -1,10 +1,34 @@
+import nebula.plugin.release.git.opinion.Strategies
 import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
   id("org.curioswitch.curiostack.java-library")
+  id("org.curioswitch.curiostack.publishing")
 
   id("org.curioswitch.gradle-protobuf-plugin")
+
+  id("io.github.gradle-nexus.publish-plugin")
+  id("nebula.release")
 }
+
+release {
+  defaultVersionStrategy = Strategies.getSNAPSHOT()
+}
+
+nebulaRelease {
+  addReleaseBranchPattern("""v\d+\.\d+\.x""")
+}
+
+nexusPublishing {
+  repositories {
+    sonatype {
+      username.set(System.getenv("MAVEN_USERNAME"))
+      password.set(System.getenv("MAVEN_PASSWORD"))
+    }
+  }
+}
+
+description = "A library for efficient marshalling of Protocol Buffer messages to and from JSON."
 
 dependencies {
   api("com.fasterxml.jackson.core:jackson-core")
@@ -35,6 +59,45 @@ tasks {
 
       errorprone {
         excludedPaths.set(".*com.google.protobuf.util.*|.*org.curioswitch.common.protobuf.json.test.*")
+      }
+    }
+  }
+
+  named("release") {
+    mustRunAfter("snapshotSetup", "finalSetup")
+  }
+}
+
+publishing {
+  publications {
+    named<MavenPublication>("maven") {
+      groupId = "org.curioswitch.curiostack"
+      pom {
+        name.set("protobuf-jackson")
+        url.set("https://github.com/curioswitch/protobuf-jackson")
+
+        licenses {
+          license {
+            name.set("MIT License")
+            url.set("https://opensource.org/licenses/MIT")
+          }
+        }
+
+        developers {
+          developer {
+            id.set("chokoswitch")
+            name.set("Choko")
+            email.set("choko@curioswitch.org")
+            organization.set("CurioSwitch")
+            organizationUrl.set("https://github.com/curioswitch/curiostack")
+          }
+        }
+
+        scm {
+          connection.set("scm:git:git://github.com/curioswitch/protobuf-jackson.git")
+          developerConnection.set("scm:git:git://github.com/curioswitch/protobuf-jackson.git")
+          url.set("git@github.com:curioswitch/protobuf-jackson.git")
+        }
       }
     }
   }

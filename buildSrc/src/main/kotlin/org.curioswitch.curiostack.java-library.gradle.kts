@@ -7,6 +7,8 @@ plugins {
   id("org.curioswitch.curiostack.spotless")
 }
 
+group = "org.curioswitch.curiostack"
+
 java {
   toolchain {
     languageVersion.set(JavaLanguageVersion.of(17))
