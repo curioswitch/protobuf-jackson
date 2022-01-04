@@ -7,6 +7,8 @@ plugins {
   id("org.curioswitch.curiostack.spotless")
 }
 
+val testJavaVersion = gradle.startParameter.projectProperties.get("testJavaVersion")?.let(JavaVersion::toVersion)
+
 java {
   toolchain {
     languageVersion.set(JavaLanguageVersion.of(17))
@@ -70,6 +72,12 @@ tasks {
 
   withType<Test>().configureEach {
     useJUnitPlatform()
+
+    if (testJavaVersion != null) {
+      javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(testJavaVersion.majorVersion))
+      })
+    }
 
     testLogging {
       exceptionFormat = TestExceptionFormat.FULL
