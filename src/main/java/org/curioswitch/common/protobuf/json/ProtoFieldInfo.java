@@ -227,7 +227,7 @@ class ProtoFieldInfo {
     if (!isInOneof()) {
       throw new IllegalStateException("field is not in a oneof");
     }
-    return "get" + underscoresToUpperCamelCase(field.getContainingOneof().getName()) + "Case";
+    return "get" + underscoresToUpperCamelCase(field.getContainingOneof().getName());
   }
 
   /**
