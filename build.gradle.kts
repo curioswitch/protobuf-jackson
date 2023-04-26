@@ -58,9 +58,7 @@ tasks {
       release.set(8)
 
       errorprone {
-        excludedPaths.set(
-          ".*com.google.protobuf.util.*|.*org.curioswitch.common.protobuf.json.test.*",
-        )
+        excludedPaths.set(".*com.google.protobuf.util.*|.*org.curioswitch.common.protobuf.json.test.*")
       }
 
       // protoc generates code deprecated code so disable the lint.
