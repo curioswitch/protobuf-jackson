@@ -27,6 +27,14 @@ tasks {
         disable("ImmutableMemberCollection")
 
         disable("Var")
+        disable("Varifier")
+
+        // TODO(chokoswitch): Consider suppressing only for the fields where avoiding
+        // standard casing is more readable.
+        disable("MemberName")
+
+        // TODO(chokoswitch): Consider enabling
+        disable("CanIgnoreReturnValueSuggester")
       }
 
       errorprone.nullaway {
