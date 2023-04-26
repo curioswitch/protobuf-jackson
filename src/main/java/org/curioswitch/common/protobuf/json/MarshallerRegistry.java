@@ -62,6 +62,11 @@ final class MarshallerRegistry {
     return marshaller;
   }
 
+  /** Returns the built parsers in this registry. */
+  Map<Descriptor, TypeSpecificMarshaller<?>> getBuiltParsers() {
+    return descriptorRegistry;
+  }
+
   @SuppressWarnings("StringSplitter")
   private static String getTypeName(String typeUrl) throws InvalidProtocolBufferException {
     String[] parts = typeUrl.split("/");

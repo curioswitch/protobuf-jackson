@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -124,9 +125,29 @@ public class MessageMarshaller {
 
   private final MarshallerRegistry registry;
 
-  private MessageMarshaller(@Nullable PrettyPrinter prettyPrinter, MarshallerRegistry registry) {
-    this.prettyPrinter = prettyPrinter;
+  private final boolean includingDefaultValueFields;
+  private final boolean preservingProtoFieldNames;
+  private final boolean omittingInsignificantWhitespace;
+  private final boolean ignoringUnknownFields;
+  private final boolean printingEnumsAsInts;
+  private final boolean sortingMapKeys;
+
+  private MessageMarshaller(
+      MarshallerRegistry registry,
+      boolean omittingInsignificantWhitespace,
+      boolean includingDefaultValueFields,
+      boolean preservingProtoFieldNames,
+      boolean ignoringUnknownFields,
+      boolean printingEnumsAsInts,
+      boolean sortingMapKeys) {
+    this.prettyPrinter = omittingInsignificantWhitespace ? null : new MessagePrettyPrinter();
     this.registry = registry;
+    this.omittingInsignificantWhitespace = omittingInsignificantWhitespace;
+    this.includingDefaultValueFields = includingDefaultValueFields;
+    this.preservingProtoFieldNames = preservingProtoFieldNames;
+    this.ignoringUnknownFields = ignoringUnknownFields;
+    this.printingEnumsAsInts = printingEnumsAsInts;
+    this.sortingMapKeys = sortingMapKeys;
   }
 
   /**
@@ -257,6 +278,23 @@ public class MessageMarshaller {
   }
 
   /**
+   * Returns a new {@link Builder} prepopulated with the messages that have been registered in this
+   * {@link MessageMarshaller}. This can be useful to incrementally add more messages to an already
+   * built marshaller. Be careful when doing this on a hot path as compilation can take a relatively
+   * large amount of time.
+   */
+  public Builder toBuilder() {
+    return new Builder(
+        registry.getBuiltParsers(),
+        omittingInsignificantWhitespace,
+        includingDefaultValueFields,
+        preservingProtoFieldNames,
+        ignoringUnknownFields,
+        printingEnumsAsInts,
+        sortingMapKeys);
+  }
+
+  /**
    * A {@link Builder} of {@link MessageMarshaller}s, allows registering {@link Message} types to
    * marshall and set options.
    */
@@ -271,6 +309,7 @@ public class MessageMarshaller {
 
     private final List<Message> prototypes = new ArrayList<>();
 
+    private final Map<Descriptor, TypeSpecificMarshaller<?>> preBuiltParsers;
     /**
      * Registers the type of the provided {@link Message} for use with the created {@link
      * MessageMarshaller}. While any instance of the type to register can be used, this will
@@ -383,22 +422,27 @@ public class MessageMarshaller {
      * will not be usable with the returned {@link MessageMarshaller}.
      */
     public MessageMarshaller build() {
-      Map<Descriptor, TypeSpecificMarshaller<?>> builtParsers = new HashMap<>();
-      addStandardParser(BoolValueMarshaller.INSTANCE, builtParsers);
-      addStandardParser(Int32ValueMarshaller.INSTANCE, builtParsers);
-      addStandardParser(UInt32ValueMarshaller.INSTANCE, builtParsers);
-      addStandardParser(Int64ValueMarshaller.INSTANCE, builtParsers);
-      addStandardParser(UInt64ValueMarshaller.INSTANCE, builtParsers);
-      addStandardParser(StringValueMarshaller.INSTANCE, builtParsers);
-      addStandardParser(BytesValueMarshaller.INSTANCE, builtParsers);
-      addStandardParser(FloatValueMarshaller.INSTANCE, builtParsers);
-      addStandardParser(DoubleValueMarshaller.INSTANCE, builtParsers);
-      addStandardParser(TimestampMarshaller.INSTANCE, builtParsers);
-      addStandardParser(DurationMarshaller.INSTANCE, builtParsers);
-      addStandardParser(FieldMaskMarshaller.INSTANCE, builtParsers);
-      addStandardParser(StructMarshaller.INSTANCE, builtParsers);
-      addStandardParser(ValueMarshaller.INSTANCE, builtParsers);
-      addStandardParser(ListValueMarshaller.INSTANCE, builtParsers);
+      Map<Descriptor, TypeSpecificMarshaller<?>> builtParsers;
+      if (!preBuiltParsers.isEmpty()) {
+        builtParsers = new HashMap<>(preBuiltParsers);
+      } else {
+        builtParsers = new HashMap<>();
+        addStandardParser(BoolValueMarshaller.INSTANCE, builtParsers);
+        addStandardParser(Int32ValueMarshaller.INSTANCE, builtParsers);
+        addStandardParser(UInt32ValueMarshaller.INSTANCE, builtParsers);
+        addStandardParser(Int64ValueMarshaller.INSTANCE, builtParsers);
+        addStandardParser(UInt64ValueMarshaller.INSTANCE, builtParsers);
+        addStandardParser(StringValueMarshaller.INSTANCE, builtParsers);
+        addStandardParser(BytesValueMarshaller.INSTANCE, builtParsers);
+        addStandardParser(FloatValueMarshaller.INSTANCE, builtParsers);
+        addStandardParser(DoubleValueMarshaller.INSTANCE, builtParsers);
+        addStandardParser(TimestampMarshaller.INSTANCE, builtParsers);
+        addStandardParser(DurationMarshaller.INSTANCE, builtParsers);
+        addStandardParser(FieldMaskMarshaller.INSTANCE, builtParsers);
+        addStandardParser(StructMarshaller.INSTANCE, builtParsers);
+        addStandardParser(ValueMarshaller.INSTANCE, builtParsers);
+        addStandardParser(ListValueMarshaller.INSTANCE, builtParsers);
+      }
 
       AnyMarshaller anyParser = new AnyMarshaller();
       addStandardParser(anyParser, builtParsers);
@@ -418,7 +462,13 @@ public class MessageMarshaller {
       anyParser.setMarshallerRegistry(registry);
 
       return new MessageMarshaller(
-          omittingInsignificantWhitespace ? null : new MessagePrettyPrinter(), registry);
+          registry,
+          omittingInsignificantWhitespace,
+          includingDefaultValueFields,
+          preservingProtoFieldNames,
+          ignoringUnknownFields,
+          printingEnumsAsInts,
+          sortingMapKeys);
     }
 
     private static <T extends Message> void addStandardParser(
@@ -427,7 +477,26 @@ public class MessageMarshaller {
       marshallers.put(marshaller.getDescriptorForMarshalledType(), marshaller);
     }
 
-    private Builder() {}
+    private Builder() {
+      preBuiltParsers = Collections.emptyMap();
+    }
+
+    Builder(
+        Map<Descriptor, TypeSpecificMarshaller<?>> preBuiltParsers,
+        boolean omittingInsignificantWhitespace,
+        boolean includingDefaultValueFields,
+        boolean preservingProtoFieldNames,
+        boolean ignoringUnknownFields,
+        boolean printingEnumsAsInts,
+        boolean sortingMapKeys) {
+      this.preBuiltParsers = preBuiltParsers;
+      this.omittingInsignificantWhitespace = omittingInsignificantWhitespace;
+      this.includingDefaultValueFields = includingDefaultValueFields;
+      this.preservingProtoFieldNames = preservingProtoFieldNames;
+      this.ignoringUnknownFields = ignoringUnknownFields;
+      this.printingEnumsAsInts = printingEnumsAsInts;
+      this.sortingMapKeys = sortingMapKeys;
+    }
   }
 
   private static class MessagePrettyPrinter extends DefaultPrettyPrinter {
