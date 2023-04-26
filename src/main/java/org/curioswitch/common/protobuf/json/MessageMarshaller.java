@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2022 Choko (choko@curioswitch.org)
+ * Copyright (c) Choko (choko@curioswitch.org)
  * SPDX-License-Identifier: MIT
  */
 

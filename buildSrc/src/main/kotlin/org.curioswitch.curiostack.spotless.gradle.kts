@@ -5,7 +5,7 @@ plugins {
 val javaLicense =
   """
     /*
-     * Copyright (c) ${'$'}YEAR Choko (choko@curioswitch.org)
+     * Copyright (c) Choko (choko@curioswitch.org)
      * SPDX-License-Identifier: MIT
      */
 
