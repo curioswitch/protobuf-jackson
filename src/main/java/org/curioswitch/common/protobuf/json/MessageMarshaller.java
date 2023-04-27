@@ -444,6 +444,8 @@ public class MessageMarshaller {
         addStandardParser(ListValueMarshaller.INSTANCE, builtParsers);
       }
 
+      // AnyMarshaller must be re-registered even if preBuiltParsers are used
+      // to be able to reference the newly registered ones.
       AnyMarshaller anyParser = new AnyMarshaller();
       addStandardParser(anyParser, builtParsers);
 
