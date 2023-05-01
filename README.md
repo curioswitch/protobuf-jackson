@@ -27,7 +27,7 @@ likely be deprecated.
 Include protobuf-jackson as a dependency. Gradle users can add
 
 ```kotlin
-implementation("org.curioswitch.curiostack:protobuf-jackson:2.0.0")
+implementation("org.curioswitch.curiostack:protobuf-jackson:2..0")
 ```
 
 to their dependencies.
