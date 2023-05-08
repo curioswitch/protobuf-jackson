@@ -1013,6 +1013,20 @@ class MessageMarshallerTest {
     assertThat(parser.isClosed()).isFalse();
   }
 
+  // Make sure handling of int values with string fields matches upstream.
+  @Test
+  void stringFieldIntValue() throws Exception {
+    // Here
+    TestAllTypes.Builder builder1 = TestAllTypes.newBuilder();
+    mergeFromJson("{\"optional_string\": 1}", builder1);
+    assertThat(builder1.build().getOptionalString()).isEqualTo("1");
+
+    // Upstream
+    TestAllTypes.Builder builder2 = TestAllTypes.newBuilder();
+    JsonFormat.parser().merge("{\"optional_string\": 1}", builder2);
+    assertThat(builder2.build().getOptionalString()).isEqualTo("1");
+  }
+
   // Seems to be errorprone bug
   @SuppressWarnings("InlineMeInliner")
   private static String recursiveJson(int numRecursions) {
