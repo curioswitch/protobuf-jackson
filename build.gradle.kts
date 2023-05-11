@@ -33,6 +33,8 @@ nexusPublishing {
 description = "A library for efficient marshalling of Protocol Buffer messages to and from JSON."
 
 dependencies {
+  compileOnly("com.fasterxml.jackson.core:jackson-databind")
+
   api("com.fasterxml.jackson.core:jackson-core")
   api("com.google.protobuf:protobuf-java")
 

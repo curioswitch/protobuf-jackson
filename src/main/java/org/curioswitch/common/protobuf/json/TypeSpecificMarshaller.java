@@ -126,6 +126,10 @@ public abstract class TypeSpecificMarshaller<T extends Message> {
     return prototype.getDescriptorForType();
   }
 
+  T getMarshalledPrototype() {
+    return prototype;
+  }
+
   static <T extends Message> void buildAndAdd(
       T prototype,
       boolean includingDefaultValueFields,

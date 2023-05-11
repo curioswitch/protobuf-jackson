@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.curioswitch.common.protobuf.json.WellKnownTypeMarshaller.AnyMarshaller;
 import org.curioswitch.common.protobuf.json.WellKnownTypeMarshaller.BoolValueMarshaller;
@@ -292,6 +293,12 @@ public class MessageMarshaller {
         ignoringUnknownFields,
         printingEnumsAsInts,
         sortingMapKeys);
+  }
+
+  List<? extends Message> registeredPrototypes() {
+    return registry.getBuiltParsers().values().stream()
+        .map(TypeSpecificMarshaller::getMarshalledPrototype)
+        .collect(Collectors.toList());
   }
 
   /**
