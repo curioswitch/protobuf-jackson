@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -18,13 +19,40 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.protobuf.Message;
 import java.io.IOException;
 
+/**
+ * A {@link Module} which can be registered to an {@link
+ * com.fasterxml.jackson.databind.ObjectMapper} to enable it to marshal protobuf using {@link
+ * MessageMarshaller}. If any modules registered after this one handle protobuf messages, they will
+ * be used even when marshalling nested messages within {@link MessageMarshaller}. This can be used
+ * to customize the marshalling of certain types when needed.
+ *
+ * <p>For example:
+ *
+ * <pre>{@code
+ * MessageMarshaller marshaller = MessageMarshaller.builder()
+ *     .register(MyMessage.getDefaultInstance())
+ *     .build();
+ * ObjectMapper mapper = new ObjectMapper();
+ * mapper.registerModule(MessageMarshallerModule.of(marshaller));
+ * mapper.writeValueAsString(MyMessage.newBuilder().setValue("hello!").build());
+ * }</pre>
+ */
 public final class MessageMarshallerModule extends SimpleModule {
+
+  /**
+   * Returns a new {@link Module} which will use the provided {@link MessageMarshaller} to marshal
+   * protobuf messages.
+   */
+  public static Module of(MessageMarshaller marshaller) {
+    return new MessageMarshallerModule(marshaller);
+  }
 
   private static final long serialVersionUID = -7559578444655954044L;
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  public MessageMarshallerModule(MessageMarshaller marshaller) {
+  private MessageMarshallerModule(MessageMarshaller marshaller) {
     for (Message prototype : marshaller.registeredPrototypes()) {
+      // Couldn't figure out how to get the generics to work properly for this without rawtypes.
       addDeserializer(
           (Class) prototype.getClass(), new MessageDeserializer<>(prototype, marshaller));
       addSerializer(new MessageSerializer<>(prototype, marshaller));

@@ -62,7 +62,7 @@ class ObjectMapperTest {
         MessageMarshaller.builder()
             .register(JsonTestProto.TestAllTypes.getDefaultInstance())
             .build();
-    OBJECT_MAPPER.registerModule(new MessageMarshallerModule(marshaller));
+    OBJECT_MAPPER.registerModule(MessageMarshallerModule.of(marshaller));
     OBJECT_MAPPER.registerModule(
         new SimpleModule()
             .addSerializer(NESTED_SERIALIZER)
