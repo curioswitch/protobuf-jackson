@@ -216,6 +216,9 @@ public final class SerializeSupport {
 
   public static <T extends Message> void printMessage(
       T value, JsonGenerator gen, TypeSpecificMarshaller<T> serializer) throws IOException {
+    if (JsonGeneratorWrapper.maybeSerialize(value, gen)) {
+      return;
+    }
     serializer.writeValue(value, gen);
   }
 

@@ -33,6 +33,8 @@ nexusPublishing {
 description = "A library for efficient marshalling of Protocol Buffer messages to and from JSON."
 
 dependencies {
+  compileOnly("com.fasterxml.jackson.core:jackson-databind")
+
   api("com.fasterxml.jackson.core:jackson-core")
   api("com.google.protobuf:protobuf-java")
 
@@ -41,7 +43,6 @@ dependencies {
   // Used by byte-buddy but not brought in as a transitive dependency.
   compileOnly("com.google.code.findbugs:annotations")
 
-  testImplementation("com.fasterxml.jackson.core:jackson-databind")
   testImplementation("com.google.protobuf:protobuf-java-util")
 }
 
@@ -50,6 +51,19 @@ protobuf {
 
   descriptorSetOptions.enabled.set(false)
   descriptorSetOptions.path.set(file("build/unused-descriptor-set"))
+}
+
+testing {
+  suites {
+    register<JvmTestSuite>("testDatabind") {
+      dependencies {
+        implementation(project)
+
+        implementation("com.fasterxml.jackson.core:jackson-databind")
+        implementation("com.google.protobuf:protobuf-java-util")
+      }
+    }
+  }
 }
 
 tasks {
@@ -68,6 +82,14 @@ tasks {
         compilerArgs.add("-Xlint:-deprecation")
       }
     }
+  }
+
+  check {
+    dependsOn(testing.suites.named("testDatabind"))
+  }
+
+  spotlessJava {
+    dependsOn(named("generateTestdatabindProto"))
   }
 
   named("release") {

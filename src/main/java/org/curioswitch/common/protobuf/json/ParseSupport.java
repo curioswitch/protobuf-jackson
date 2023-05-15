@@ -369,6 +369,15 @@ public final class ParseSupport {
   public static <T extends Message> T parseMessage(
       JsonParser parser, TypeSpecificMarshaller<T> marshaller, int currentDepth)
       throws IOException {
+    Object maybeParsed =
+        JsonParserWrapper.maybeDeserialize(parser, marshaller.getMarshalledPrototype().getClass());
+    if (maybeParsed != JsonParserWrapper.NOT_DESERIALIZED) {
+      // This will always be safe unless the deserializer itself is completely broken, which would
+      // require subverting the generics.
+      @SuppressWarnings("unchecked")
+      T parsed = (T) maybeParsed;
+      return parsed;
+    }
     return marshaller.readValue(parser, currentDepth + 1);
   }
 
