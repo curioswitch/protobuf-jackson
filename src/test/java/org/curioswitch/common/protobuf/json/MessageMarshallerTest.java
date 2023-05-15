@@ -10,9 +10,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.offset;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.protobuf.Any;
 import com.google.protobuf.BoolValue;
@@ -992,25 +989,6 @@ class MessageMarshallerTest {
   @Test
   void fieldsOutOfOrder() throws Exception {
     assertMatchesUpstream(TestFieldOrder.newBuilder().setValue1("foo").setValue2("bar").build());
-  }
-
-  @Test
-  void doesNotCloseJsonGenerator() throws Exception {
-    JsonGenerator generator =
-        new ObjectMapper().getFactory().createGenerator(new ByteArrayOutputStream());
-    MessageMarshaller marshaller =
-        MessageMarshaller.builder().register(TestAllTypes.getDefaultInstance()).build();
-    marshaller.writeValue(TestAllTypes.getDefaultInstance(), generator);
-    assertThat(generator.isClosed()).isFalse();
-  }
-
-  @Test
-  void doesNotCloseJsonParser() throws Exception {
-    JsonParser parser = new ObjectMapper().getFactory().createParser("{}");
-    MessageMarshaller marshaller =
-        MessageMarshaller.builder().register(TestAllTypes.getDefaultInstance()).build();
-    marshaller.mergeValue(parser, TestAllTypes.newBuilder());
-    assertThat(parser.isClosed()).isFalse();
   }
 
   // Make sure handling of int values with string fields matches upstream.

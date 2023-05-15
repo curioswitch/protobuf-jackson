@@ -18,7 +18,9 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.protobuf.util.JsonTestProto;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class ObjectMapperTest {
@@ -80,7 +82,7 @@ class ObjectMapperTest {
 
     JsonTestProto.TestAllTypes.NestedMessage deserialized =
         OBJECT_MAPPER.readValue(serialized, JsonTestProto.TestAllTypes.NestedMessage.class);
-    assertThat(deserialized).isEqualTo(message);
+    Assertions.assertThat(deserialized).isEqualTo(message);
 
     JsonTestProto.TestAllTypes allTypes =
         JsonTestProto.TestAllTypes.newBuilder().setOptionalNestedMessage(message).build();
@@ -91,6 +93,29 @@ class ObjectMapperTest {
 
     JsonTestProto.TestAllTypes deserializedAllTypes =
         OBJECT_MAPPER.readValue(allTypesSerialized, JsonTestProto.TestAllTypes.class);
-    assertThat(deserializedAllTypes).isEqualTo(allTypes);
+    Assertions.assertThat(deserializedAllTypes).isEqualTo(allTypes);
+  }
+
+  @Test
+  void doesNotCloseJsonGenerator() throws Exception {
+    JsonGenerator generator =
+        new ObjectMapper().getFactory().createGenerator(new ByteArrayOutputStream());
+    MessageMarshaller marshaller =
+        MessageMarshaller.builder()
+            .register(JsonTestProto.TestAllTypes.getDefaultInstance())
+            .build();
+    marshaller.writeValue(JsonTestProto.TestAllTypes.getDefaultInstance(), generator);
+    assertThat(generator.isClosed()).isFalse();
+  }
+
+  @Test
+  void doesNotCloseJsonParser() throws Exception {
+    JsonParser parser = new ObjectMapper().getFactory().createParser("{}");
+    MessageMarshaller marshaller =
+        MessageMarshaller.builder()
+            .register(JsonTestProto.TestAllTypes.getDefaultInstance())
+            .build();
+    marshaller.mergeValue(parser, JsonTestProto.TestAllTypes.newBuilder());
+    assertThat(parser.isClosed()).isFalse();
   }
 }
