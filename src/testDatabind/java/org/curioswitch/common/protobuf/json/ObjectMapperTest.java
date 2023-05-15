@@ -27,9 +27,6 @@ class ObjectMapperTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  // private static final JavaType NESTED_MESSAGE_TYPE = OBJECT_MAPPER.constructType(new
-  // TypeReference<JsonTestProto.TestAllTypes.NestedMessage>() {});
-
   private static final JsonSerializer<JsonTestProto.TestAllTypes.NestedMessage> NESTED_SERIALIZER =
       new StdSerializer<JsonTestProto.TestAllTypes.NestedMessage>(
           JsonTestProto.TestAllTypes.NestedMessage.class) {
