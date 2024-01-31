@@ -62,6 +62,18 @@ testing {
         implementation("com.fasterxml.jackson.core:jackson-databind")
         implementation("com.google.protobuf:protobuf-java-util")
       }
+      sources {
+        java {
+          srcDir("build/generated/proto/test")
+        }
+      }
+      targets {
+        all {
+          testTask.configure {
+            dependsOn("generateTestProto")
+          }
+        }
+      }
     }
   }
 }
@@ -89,7 +101,7 @@ tasks {
   }
 
   spotlessJava {
-    dependsOn(named("generateTestdatabindProto"))
+    dependsOn(named("generateTestProto"), named("generateTestdatabindProto"))
   }
 
   named("release") {
