@@ -317,6 +317,7 @@ public class MessageMarshaller {
     private final List<Message> prototypes = new ArrayList<>();
 
     private final Map<Descriptor, TypeSpecificMarshaller<?>> preBuiltParsers;
+
     /**
      * Registers the type of the provided {@link Message} for use with the created {@link
      * MessageMarshaller}. While any instance of the type to register can be used, this will

@@ -1023,7 +1023,7 @@ class MessageMarshallerTest {
     return input.toString();
   }
 
-  private static void assertMatchesUpstream(Message message, Message... additionalTypes)
+  static void assertMatchesUpstream(Message message, Message... additionalTypes)
       throws IOException {
     assertMatchesUpstream(
         message,

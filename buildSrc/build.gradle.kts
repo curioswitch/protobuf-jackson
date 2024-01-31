@@ -12,7 +12,7 @@ repositories {
 
 dependencies {
   // When updating, update above in plugins too
-  implementation("com.diffplug.spotless:spotless-plugin-gradle:6.18.0")
+  implementation("com.diffplug.spotless:spotless-plugin-gradle:6.25.0")
   implementation("com.netflix.nebula:nebula-release-plugin:17.2.1")
   implementation("io.github.gradle-nexus:publish-plugin:1.3.0")
   implementation("me.champeau.jmh:jmh-gradle-plugin:0.7.1")
