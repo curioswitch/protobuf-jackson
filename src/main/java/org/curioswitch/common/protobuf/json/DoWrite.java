@@ -483,6 +483,11 @@ final class DoWrite implements ByteCodeAppender, Implementation {
           EnumLite_getNumber,
           IntegerConstant.forValue(info.descriptor().getNumber()),
           new IfIntsNotEqual(afterSerializeField));
+    } else if (info.descriptor().hasOptionalKeyword()) {
+      return new StackManipulation.Compound(
+          locals.load(LocalVariable.message),
+          invoke(info.hasValueMethod()),
+          new IfFalse(afterSerializeField));
     } else if (!info.isRepeated()) {
       switch (info.valueJavaType()) {
         case INT:
