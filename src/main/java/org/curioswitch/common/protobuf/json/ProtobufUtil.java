@@ -38,6 +38,7 @@ package org.curioswitch.common.protobuf.json;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.protobuf.Descriptors;
 import com.google.protobuf.Duration;
 import com.google.protobuf.FieldMask;
 import com.google.protobuf.Timestamp;
@@ -298,6 +299,11 @@ final class ProtobufUtil {
     out.append(toLowerCase(s.charAt(i)));
     out.append(s, i + 1, s.length());
     return out.toString();
+  }
+
+  @SuppressWarnings("deprecation") // no replacement...
+  static boolean hasOptionalKeyword(Descriptors.FieldDescriptor descriptor) {
+    return descriptor.hasOptionalKeyword();
   }
 
   private static char toLowerCase(char c) {

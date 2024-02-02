@@ -11,7 +11,6 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor.Type;
-import com.google.protobuf.LegacyDescriptorsUtil;
 import com.google.protobuf.Message;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -217,8 +216,7 @@ class ProtoFieldInfo {
 
   /** Returns whether this field is in a oneof. */
   boolean isInOneof() {
-    return field.getContainingOneof() != null
-        && !LegacyDescriptorsUtil.LegacyFieldDescriptor.hasOptionalKeyword(field);
+    return field.getContainingOneof() != null && !ProtobufUtil.hasOptionalKeyword(field);
   }
 
   /**
