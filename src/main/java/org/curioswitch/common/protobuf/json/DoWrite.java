@@ -16,7 +16,6 @@ import com.google.protobuf.Descriptors.EnumValueDescriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor.JavaType;
 import com.google.protobuf.Internal.EnumLite;
-import com.google.protobuf.LegacyDescriptorsUtil;
 import com.google.protobuf.Message;
 import com.google.protobuf.NullValue;
 import java.util.ArrayList;
@@ -341,7 +340,7 @@ final class DoWrite implements ByteCodeAppender, Implementation {
           // one-of).
           || field.isInOneof()
           // Only print optional marked fields if actually set
-          || LegacyDescriptorsUtil.LegacyFieldDescriptor.hasOptionalKeyword(field.descriptor())
+          || ProtobufUtil.hasOptionalKeyword(field.descriptor())
           // Always skip empty optional message fields. If not we will recurse indefinitely if
           // a message has itself as a sub-field.
           || (field.descriptor().isOptional() && field.valueJavaType() == JavaType.MESSAGE)) {
@@ -484,7 +483,7 @@ final class DoWrite implements ByteCodeAppender, Implementation {
           EnumLite_getNumber,
           IntegerConstant.forValue(info.descriptor().getNumber()),
           new IfIntsNotEqual(afterSerializeField));
-    } else if (LegacyDescriptorsUtil.LegacyFieldDescriptor.hasOptionalKeyword(info.descriptor())) {
+    } else if (ProtobufUtil.hasOptionalKeyword(info.descriptor())) {
       return new StackManipulation.Compound(
           locals.load(LocalVariable.message),
           invoke(info.hasValueMethod()),
