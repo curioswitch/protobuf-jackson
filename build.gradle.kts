@@ -1,13 +1,10 @@
 import nebula.plugin.release.git.opinion.Strategies
-import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
   jacoco
 
   id("org.curioswitch.curiostack.java-library")
   id("org.curioswitch.curiostack.publishing")
-
-  id("org.curioswitch.gradle-protobuf-plugin")
 
   id("com.github.ben-manes.versions")
   id("io.github.gradle-nexus.publish-plugin")
@@ -44,36 +41,19 @@ dependencies {
   // Used by byte-buddy but not brought in as a transitive dependency.
   compileOnly("com.google.code.findbugs:annotations")
 
+  testImplementation(project(":testing"))
   testImplementation("com.google.protobuf:protobuf-java-util")
-}
-
-protobuf {
-  protoc { artifact.set("com.google.protobuf:protoc:3.22.3") }
-
-  descriptorSetOptions.enabled.set(false)
-  descriptorSetOptions.path.set(file("build/unused-descriptor-set"))
 }
 
 testing {
   suites {
     register<JvmTestSuite>("testDatabind") {
       dependencies {
-        implementation(project)
+        implementation(project())
+        implementation(project(":testing"))
 
         implementation("com.fasterxml.jackson.core:jackson-databind")
         implementation("com.google.protobuf:protobuf-java-util")
-      }
-      sources {
-        java {
-          srcDir("build/generated/proto/test")
-        }
-      }
-      targets {
-        all {
-          testTask.configure {
-            dependsOn("generateTestProto")
-          }
-        }
       }
     }
   }
@@ -83,26 +63,11 @@ tasks {
   withType<JavaCompile>().configureEach {
     with(options) {
       release.set(8)
-
-      errorprone {
-        excludedPaths.set(
-          ".*com.google.protobuf.util.*|.*org.curioswitch.common.protobuf.json.test.*",
-        )
-      }
-
-      // protoc generates code deprecated code so disable the lint.
-      if (name.contains("Test")) {
-        compilerArgs.add("-Xlint:-deprecation")
-      }
     }
   }
 
   check {
     dependsOn(testing.suites.named("testDatabind"))
-  }
-
-  spotlessJava {
-    dependsOn(named("generateTestProto"), named("generateTestdatabindProto"))
   }
 
   named("release") {
