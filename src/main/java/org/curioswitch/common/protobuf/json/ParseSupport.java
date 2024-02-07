@@ -440,6 +440,15 @@ public final class ParseSupport {
     }
   }
 
+  /**
+   * Returns whether the two field names are equal. The implementation attempts to optimize based on
+   * facts such as whether the JsonParser implementation interns field names.
+   */
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean fieldNamesEqual(JsonParser parser, String name1, String name2) {
+    return name1 == name2;
+  }
+
   /** Parses a long out of the input, using the optimized path when the value is not quoted. */
   private static long parseLong(JsonParser parser) throws IOException {
     if (parser.currentToken() == JsonToken.VALUE_NUMBER_INT) {
