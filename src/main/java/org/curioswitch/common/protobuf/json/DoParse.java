@@ -38,8 +38,7 @@ import net.bytebuddy.jar.asm.MethodVisitor;
 import org.curioswitch.common.protobuf.json.LocalVariables.VariableHandle;
 import org.curioswitch.common.protobuf.json.bytebuddy.Goto;
 import org.curioswitch.common.protobuf.json.bytebuddy.IfEqual;
-import org.curioswitch.common.protobuf.json.bytebuddy.IfRefsEqual;
-import org.curioswitch.common.protobuf.json.bytebuddy.IfRefsNotEqual;
+import org.curioswitch.common.protobuf.json.bytebuddy.IfFalse;
 import org.curioswitch.common.protobuf.json.bytebuddy.IfTrue;
 import org.curioswitch.common.protobuf.json.bytebuddy.SetJumpTargetLabel;
 
@@ -150,6 +149,8 @@ final class DoParse implements ByteCodeAppender, Implementation {
   private static final StackManipulation ParseSupport_mapUnknownEnumValue;
   private static final StackManipulation ParseSupport_parseMessage;
 
+  private static final StackManipulation ParseSupport_fieldNamesEqual;
+
   static {
     try {
       Parser_getCurrentName = invoke(JsonParser.class.getDeclaredMethod("getCurrentName"));
@@ -215,6 +216,11 @@ final class DoParse implements ByteCodeAppender, Implementation {
           invoke(
               ParseSupport.class.getDeclaredMethod(
                   "parseMessage", JsonParser.class, TypeSpecificMarshaller.class, int.class));
+
+      ParseSupport_fieldNamesEqual =
+          invoke(
+              ParseSupport.class.getDeclaredMethod(
+                  "fieldNamesEqual", JsonParser.class, String.class, String.class));
     } catch (NoSuchMethodException e) {
       throw new IllegalStateException("Could not find expected method.", e);
     }
@@ -338,12 +344,16 @@ final class DoParse implements ByteCodeAppender, Implementation {
       // } else if ...
       stackManipulations.addAll(
           Arrays.asList(
+              locals.load(LocalVariable.parser),
               locals.load(LocalVariable.fieldName),
               new TextConstant(field.descriptor().getJsonName()),
-              new IfRefsEqual(afterNameCheck),
+              ParseSupport_fieldNamesEqual,
+              new IfTrue(afterNameCheck),
+              locals.load(LocalVariable.parser),
               locals.load(LocalVariable.fieldName),
               new TextConstant(field.descriptor().getName()),
-              new IfRefsNotEqual(afterField),
+              ParseSupport_fieldNamesEqual,
+              new IfFalse(afterField),
               new SetJumpTargetLabel(afterNameCheck)));
 
       // Check whether we have already seen this field in the JSON, which is not allowed. e.g.,
