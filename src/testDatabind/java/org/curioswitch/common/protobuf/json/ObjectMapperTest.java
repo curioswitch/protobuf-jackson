@@ -7,16 +7,19 @@ package org.curioswitch.common.protobuf.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.google.protobuf.util.JsonFormat;
 import com.google.protobuf.util.JsonTestProto;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -114,5 +117,29 @@ class ObjectMapperTest {
             .build();
     marshaller.mergeValue(parser, JsonTestProto.TestAllTypes.newBuilder());
     assertThat(parser.isClosed()).isFalse();
+  }
+
+  @Test
+  @SuppressWarnings("deprecation") // Test old API.
+  void treeAsTokens() throws Exception {
+    JsonTestProto.TestAllTypes message =
+        JsonTestProto.TestAllTypes.newBuilder().setOptionalInt32(10).build();
+
+    MessageMarshaller marshaller =
+        MessageMarshaller.builder()
+            .register(JsonTestProto.TestAllTypes.getDefaultInstance())
+            .build();
+
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.getFactory().configure(JsonFactory.Feature.INTERN_FIELD_NAMES, false);
+    mapper.registerModule(MessageMarshallerModule.of(marshaller));
+
+    String json = JsonFormat.printer().print(message);
+    JsonNode tree = mapper.readTree(json);
+    JsonParser parser = mapper.treeAsTokens(tree);
+
+    JsonTestProto.TestAllTypes.Builder builder = JsonTestProto.TestAllTypes.newBuilder();
+    marshaller.mergeValue(parser, builder);
+    assertThat(builder.build().getOptionalInt32()).isEqualTo(10);
   }
 }

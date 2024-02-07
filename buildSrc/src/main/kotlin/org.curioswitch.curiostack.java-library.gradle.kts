@@ -49,8 +49,6 @@ dependencies {
 testing {
   suites.withType(JvmTestSuite::class).configureEach {
     dependencies {
-      implementation(project)
-
       implementation("org.assertj:assertj-core")
       implementation("org.junit.jupiter:junit-jupiter-api")
       implementation("org.junit.jupiter:junit-jupiter-params")

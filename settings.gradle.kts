@@ -13,3 +13,4 @@ dependencyResolutionManagement {
 }
 
 include(":dependencyManagement")
+include(":testing")
