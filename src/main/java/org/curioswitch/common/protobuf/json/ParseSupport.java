@@ -8,6 +8,7 @@ package org.curioswitch.common.protobuf.json;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.base.ParserBase;
 import com.fasterxml.jackson.core.exc.InputCoercionException;
 import com.fasterxml.jackson.core.io.NumberInput;
 import com.google.protobuf.ByteString;
@@ -446,7 +447,20 @@ public final class ParseSupport {
    */
   @SuppressWarnings("ReferenceEquality")
   public static boolean fieldNamesEqual(JsonParser parser, String name1, String name2) {
-    return name1 == name2;
+    if (parser instanceof ParserBase) {
+      // The standard Jackson parsers all inherit from ParserBase and default to interning field
+      // names.
+      // It is possible to disable interning which will cause us to fail, so far we have not had a
+      // user
+      // run into this problem for ParserBase implementations but will see if there is a good way to
+      // make this more robust.
+
+      // TODO(chokoswitch): Check if parser has interning enabled and avoid reference equality if
+      // so.
+      return name1 == name2;
+    }
+
+    return name1.equals(name2);
   }
 
   /** Parses a long out of the input, using the optimized path when the value is not quoted. */
