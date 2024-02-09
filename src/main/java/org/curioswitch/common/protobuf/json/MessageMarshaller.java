@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.util.ByteArrayBuilder;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import java.io.IOException;
@@ -27,10 +28,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.curioswitch.common.protobuf.json.WellKnownTypeMarshaller.AnyMarshaller;
@@ -127,6 +131,7 @@ public class MessageMarshaller {
   private final MarshallerRegistry registry;
 
   private final boolean includingDefaultValueFields;
+  private final Set<FieldDescriptor> fieldsToAlwaysOutput;
   private final boolean preservingProtoFieldNames;
   private final boolean omittingInsignificantWhitespace;
   private final boolean ignoringUnknownFields;
@@ -137,6 +142,7 @@ public class MessageMarshaller {
       MarshallerRegistry registry,
       boolean omittingInsignificantWhitespace,
       boolean includingDefaultValueFields,
+      Set<FieldDescriptor> fieldsToAlwaysOutput,
       boolean preservingProtoFieldNames,
       boolean ignoringUnknownFields,
       boolean printingEnumsAsInts,
@@ -145,6 +151,7 @@ public class MessageMarshaller {
     this.registry = registry;
     this.omittingInsignificantWhitespace = omittingInsignificantWhitespace;
     this.includingDefaultValueFields = includingDefaultValueFields;
+    this.fieldsToAlwaysOutput = fieldsToAlwaysOutput;
     this.preservingProtoFieldNames = preservingProtoFieldNames;
     this.ignoringUnknownFields = ignoringUnknownFields;
     this.printingEnumsAsInts = printingEnumsAsInts;
@@ -289,6 +296,7 @@ public class MessageMarshaller {
         registry.getBuiltParsers(),
         omittingInsignificantWhitespace,
         includingDefaultValueFields,
+        fieldsToAlwaysOutput,
         preservingProtoFieldNames,
         ignoringUnknownFields,
         printingEnumsAsInts,
@@ -308,6 +316,7 @@ public class MessageMarshaller {
   public static final class Builder {
 
     private boolean includingDefaultValueFields;
+    private Set<FieldDescriptor> fieldsToAlwaysOutput = Collections.emptySet();
     private boolean preservingProtoFieldNames;
     private boolean omittingInsignificantWhitespace;
     private boolean ignoringUnknownFields;
@@ -357,11 +366,35 @@ public class MessageMarshaller {
 
     /**
      * Set whether unset fields will be serialized with their default values. Empty repeated fields
-     * and map fields will be printed as well. The new Printer clones all other configurations from
-     * the current.
+     * and map fields will be printed as well.
      */
     public Builder includingDefaultValueFields(boolean includingDefaultValueFields) {
       this.includingDefaultValueFields = includingDefaultValueFields;
+      this.fieldsToAlwaysOutput = Collections.emptySet();
+      return this;
+    }
+
+    /**
+     * Sets fields which should always be serialized with their default values, even if unset. Empty
+     * repeated fields and map fields will be printed as well, if they match. Call {@link
+     * #includingDefaultValueFields} with {@code true} to unconditionally include all fields.
+     */
+    public Builder includingDefaultValueFields(FieldDescriptor... fieldsToAlwaysOutput) {
+      requireNonNull(fieldsToAlwaysOutput, "fieldsToAlwaysOutput");
+      includingDefaultValueFields(Arrays.asList(fieldsToAlwaysOutput));
+      return this;
+    }
+
+    /**
+     * Sets fields which should always be serialized with their default values, even if unset. Empty
+     * repeated fields and map fields will be printed as well, if they match. Call {@link
+     * #includingDefaultValueFields} with {@code true} to unconditionally include all fields.
+     */
+    public Builder includingDefaultValueFields(Iterable<FieldDescriptor> fieldsToAlwaysOutput) {
+      requireNonNull(fieldsToAlwaysOutput, "fieldsToAlwaysOutput");
+      this.includingDefaultValueFields = false;
+      this.fieldsToAlwaysOutput = new HashSet<>();
+      fieldsToAlwaysOutput.forEach(this.fieldsToAlwaysOutput::add);
       return this;
     }
 
@@ -461,6 +494,7 @@ public class MessageMarshaller {
         TypeSpecificMarshaller.buildAndAdd(
             prototype,
             includingDefaultValueFields,
+            fieldsToAlwaysOutput,
             preservingProtoFieldNames,
             ignoringUnknownFields,
             printingEnumsAsInts,
@@ -475,6 +509,7 @@ public class MessageMarshaller {
           registry,
           omittingInsignificantWhitespace,
           includingDefaultValueFields,
+          fieldsToAlwaysOutput,
           preservingProtoFieldNames,
           ignoringUnknownFields,
           printingEnumsAsInts,
@@ -495,6 +530,7 @@ public class MessageMarshaller {
         Map<Descriptor, TypeSpecificMarshaller<?>> preBuiltParsers,
         boolean omittingInsignificantWhitespace,
         boolean includingDefaultValueFields,
+        Set<FieldDescriptor> fieldsToAlwaysOutput,
         boolean preservingProtoFieldNames,
         boolean ignoringUnknownFields,
         boolean printingEnumsAsInts,
@@ -502,6 +538,7 @@ public class MessageMarshaller {
       this.preBuiltParsers = preBuiltParsers;
       this.omittingInsignificantWhitespace = omittingInsignificantWhitespace;
       this.includingDefaultValueFields = includingDefaultValueFields;
+      this.fieldsToAlwaysOutput = fieldsToAlwaysOutput;
       this.preservingProtoFieldNames = preservingProtoFieldNames;
       this.ignoringUnknownFields = ignoringUnknownFields;
       this.printingEnumsAsInts = printingEnumsAsInts;

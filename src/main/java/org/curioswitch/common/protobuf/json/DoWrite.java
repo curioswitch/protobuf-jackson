@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import net.bytebuddy.description.field.FieldDescription;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription.ForLoadedType;
@@ -274,18 +275,21 @@ final class DoWrite implements ByteCodeAppender, Implementation {
   private final Class<? extends Message> messageClass;
   private final Descriptor descriptor;
   private final boolean includeDefaults;
+  private final Set<FieldDescriptor> fieldsToAlwaysOutput;
   private final boolean printingEnumsAsInts;
   private final boolean sortingMapKeys;
 
   DoWrite(
       Message prototype,
       boolean includeDefaults,
+      Set<FieldDescriptor> fieldsToAlwaysOutput,
       boolean printingEnumsAsInts,
       boolean sortingMapKeys) {
     this.prototype = prototype;
     this.messageClass = prototype.getClass();
     this.descriptor = prototype.getDescriptorForType();
     this.includeDefaults = includeDefaults;
+    this.fieldsToAlwaysOutput = fieldsToAlwaysOutput;
     this.printingEnumsAsInts = printingEnumsAsInts;
     this.sortingMapKeys = sortingMapKeys;
   }
@@ -335,7 +339,7 @@ final class DoWrite implements ByteCodeAppender, Implementation {
       // if (message.getBarCount() != 0) {
       //   ...
       // }
-      if (!includeDefaults
+      if ((!includeDefaults && !fieldsToAlwaysOutput.contains(f))
           // Only print one-of fields if they're actually set (the default of a one-of is an empty
           // one-of).
           || field.isInOneof()
