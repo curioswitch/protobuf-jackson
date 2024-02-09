@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods;
 import net.bytebuddy.description.type.TypeDefinition;
@@ -133,6 +134,7 @@ public abstract class TypeSpecificMarshaller<T extends Message> {
   static <T extends Message> void buildAndAdd(
       T prototype,
       boolean includingDefaultValueFields,
+      Set<FieldDescriptor> fieldsToAlwaysOutput,
       boolean preservingProtoFieldNames,
       boolean ignoringUnknownFields,
       boolean printingEnumsAsInts,
@@ -144,6 +146,7 @@ public abstract class TypeSpecificMarshaller<T extends Message> {
     buildOrFindMarshaller(
         prototype,
         includingDefaultValueFields,
+        fieldsToAlwaysOutput,
         preservingProtoFieldNames,
         ignoringUnknownFields,
         printingEnumsAsInts,
@@ -177,6 +180,7 @@ public abstract class TypeSpecificMarshaller<T extends Message> {
   private static <T extends Message> void buildOrFindMarshaller(
       T prototype,
       boolean includingDefaultValueFields,
+      Set<FieldDescriptor> fieldsToAlwaysOutput,
       boolean preservingProtoFieldNames,
       boolean ignoringUnknownFields,
       boolean printingEnumsAsInts,
@@ -254,7 +258,11 @@ public abstract class TypeSpecificMarshaller<T extends Message> {
             .throwing(IOException.class)
             .intercept(
                 new DoWrite(
-                    prototype, includingDefaultValueFields, printingEnumsAsInts, sortingMapKeys));
+                    prototype,
+                    includingDefaultValueFields,
+                    fieldsToAlwaysOutput,
+                    printingEnumsAsInts,
+                    sortingMapKeys));
     try {
       marshaller =
           buddy
@@ -278,6 +286,7 @@ public abstract class TypeSpecificMarshaller<T extends Message> {
       buildOrFindMarshaller(
           nestedPrototype,
           includingDefaultValueFields,
+          fieldsToAlwaysOutput,
           preservingProtoFieldNames,
           ignoringUnknownFields,
           printingEnumsAsInts,
