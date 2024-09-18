@@ -1132,4 +1132,18 @@ class MessageMarshallerTest {
     }
     assertThat(builder3.build()).isEqualTo(builder.build());
   }
+
+  @Test
+  void stringFieldFloatInput() throws Exception {
+    String json = "{\"optional_string\": 1.012345}";
+
+    // Confirm behavior matches upstream.
+    TestAllTypes.Builder upstreamBuilder = TestAllTypes.newBuilder();
+    JsonFormat.parser().merge(json, upstreamBuilder);
+    assertThat(upstreamBuilder.build().getOptionalString()).isEqualTo("1.012345");
+
+    TestAllTypes.Builder builder = TestAllTypes.newBuilder();
+    mergeFromJson(json, builder);
+    assertThat(builder.build().getOptionalString()).isEqualTo("1.012345");
+  }
 }
