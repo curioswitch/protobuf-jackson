@@ -1140,7 +1140,8 @@ class MessageMarshallerTest {
     // Confirm behavior matches upstream.
     TestAllTypes.Builder upstreamBuilder = TestAllTypes.newBuilder();
     JsonFormat.parser().merge(json, upstreamBuilder);
-    assertThat(upstreamBuilder.build().getOptionalString()).isEqualTo("1.100000000000000000000000000001");
+    assertThat(upstreamBuilder.build().getOptionalString())
+        .isEqualTo("1.100000000000000000000000000001");
 
     TestAllTypes.Builder builder = TestAllTypes.newBuilder();
     mergeFromJson(json, builder);
