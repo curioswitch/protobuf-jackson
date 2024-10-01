@@ -51,10 +51,16 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+      - id: setup-java-21
+        name: Setup Java 21
+        uses: actions/setup-java@v2
+        with:
+          distribution: temurin
+          java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       - name: Run Tests
         run: |
-          ./gradlew build ${{ matrix.coverage && 'jacocoTestReport' || '' }} -PtestJavaVersion=${{ matrix.test-java-version }} -Porg.gradle.java.installations.paths=${{ steps.setup-java-8.outputs.path }},${{ steps.setup-java-11.outputs.path }},${{ steps.setup-java-17.outputs.path }}
+          ./gradlew build ${{ matrix.coverage && 'jacocoTestReport' || '' }} -PtestJavaVersion=${{ matrix.test-java-version }} -Porg.gradle.java.installations.paths=${{ steps.setup-java-8.outputs.path }},${{ steps.setup-java-11.outputs.path }},${{ steps.setup-java-17.outputs.path }},${{ steps.setup-java-21.outputs.path }}
         env:
           PROTOBUF_VERSION: ${{ matrix.protobuf-version }}
       - uses: codecov/codecov-action@v2.1.0
@@ -68,11 +74,11 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Setup Java 17
+      - name: Setup Java 21
         uses: actions/setup-java@v2
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew snapshot
         env:
