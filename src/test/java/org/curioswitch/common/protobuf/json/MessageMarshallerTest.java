@@ -53,6 +53,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -61,6 +63,22 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class MessageMarshallerTest {
+
+  static final Method alwaysPrintFieldsWithNoPresence;
+
+  static {
+    Method method;
+    try {
+      method = Printer.class.getMethod("alwaysPrintFieldsWithNoPresence");
+    } catch (NoSuchMethodException e) {
+      try {
+        method = Printer.class.getMethod("includingDefaultValueFields");
+      } catch (NoSuchMethodException unused) {
+        throw new IllegalStateException("Could not find alwaysPrintFieldsWithPresence method.", e);
+      }
+    }
+    alwaysPrintFieldsWithNoPresence = method;
+  }
 
   @Test
   void allFields() throws Exception {
@@ -1062,7 +1080,11 @@ class MessageMarshallerTest {
     }
     Printer printer = JsonFormat.printer().usingTypeRegistry(typeRegistry.build());
     if (includingDefaultValueFields) {
-      printer = printer.includingDefaultValueFields();
+      try {
+        printer = (Printer) alwaysPrintFieldsWithNoPresence.invoke(printer);
+      } catch (IllegalAccessException | InvocationTargetException e) {
+        throw new IOException(e);
+      }
     }
     if (preservingProtoFieldNames) {
       printer = printer.preservingProtoFieldNames();

@@ -42,6 +42,7 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.Duration;
 import com.google.protobuf.FieldMask;
 import com.google.protobuf.Timestamp;
+import java.lang.reflect.Method;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -59,6 +60,22 @@ final class ProtobufUtil {
   static final long DURATION_SECONDS_MIN = -315576000000L;
   // Visible for testing
   static final long DURATION_SECONDS_MAX = 315576000000L;
+
+  static final Method hasPresence;
+
+  static {
+    Method method;
+    try {
+      method = Descriptors.FieldDescriptor.class.getMethod("hasPresence");
+    } catch (NoSuchMethodException e) {
+      try {
+        method = Descriptors.FieldDescriptor.class.getMethod("hasOptionalKeyword");
+      } catch (NoSuchMethodException unused) {
+        throw new IllegalStateException("Could not find hasPresence method.", e);
+      }
+    }
+    hasPresence = method;
+  }
 
   private static final long NANOS_PER_SECOND = TimeUnit.SECONDS.toNanos(1);
   private static final long NANOS_PER_MILLISECOND = TimeUnit.MILLISECONDS.toNanos(1);
@@ -301,9 +318,12 @@ final class ProtobufUtil {
     return out.toString();
   }
 
-  @SuppressWarnings("deprecation") // no replacement...
   static boolean hasOptionalKeyword(Descriptors.FieldDescriptor descriptor) {
-    return descriptor.hasOptionalKeyword();
+    try {
+      return (boolean) hasPresence.invoke(descriptor);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException("Could not invoke hasPresence method.", e);
+    }
   }
 
   private static char toLowerCase(char c) {

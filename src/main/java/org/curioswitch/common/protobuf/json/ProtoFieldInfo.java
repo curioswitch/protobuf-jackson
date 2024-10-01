@@ -23,6 +23,19 @@ import javax.annotation.Nullable;
  */
 class ProtoFieldInfo {
 
+  @Nullable
+  static final Method getRealContainingOneof;
+  static {
+    Method method =  null;
+    try {
+      method = FieldDescriptor.class.getDeclaredMethod("getRealContainingOneof");
+    } catch (NoSuchMethodException e) {
+      // Ignore
+    }
+    getRealContainingOneof = method;
+  }
+
+
   private final FieldDescriptor field;
   private final Message containingPrototype;
   private final Class<? extends Message.Builder> builderClass;
@@ -216,7 +229,17 @@ class ProtoFieldInfo {
 
   /** Returns whether this field is in a oneof. */
   boolean isInOneof() {
-    return field.getContainingOneof() != null && !ProtobufUtil.hasOptionalKeyword(field);
+    if (getRealContainingOneof != null) {
+      try {
+        return getRealContainingOneof.invoke(field) != null;
+      } catch (IllegalAccessException | InvocationTargetException e) {
+        throw new IllegalStateException("Could not call getRealContainingOneof.", e);
+      }
+    }
+    if (field.getContainingOneof() == null) {
+      return false;
+    }
+    return !ProtobufUtil.hasOptionalKeyword(field);
   }
 
   /**
