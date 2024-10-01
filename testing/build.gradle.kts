@@ -11,7 +11,13 @@ dependencies {
 }
 
 protobuf {
-  protoc { artifact.set("com.google.protobuf:protoc:3.22.3") }
+  protoc {
+    artifact.set(
+      "com.google.protobuf:protoc:${System.getenv(
+        "PROTOBUF_VERSION",
+      ).orEmpty().ifEmpty { "4.28.2" }}",
+    )
+  }
 
   descriptorSetOptions.enabled.set(false)
   descriptorSetOptions.path.set(file("build/unused-descriptor-set"))
