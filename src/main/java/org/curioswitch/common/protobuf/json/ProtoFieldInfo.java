@@ -23,10 +23,10 @@ import javax.annotation.Nullable;
  */
 class ProtoFieldInfo {
 
-  @Nullable
-  static final Method getRealContainingOneof;
+  @Nullable static final Method getRealContainingOneof;
+
   static {
-    Method method =  null;
+    Method method = null;
     try {
       method = FieldDescriptor.class.getDeclaredMethod("getRealContainingOneof");
     } catch (NoSuchMethodException e) {
@@ -34,7 +34,6 @@ class ProtoFieldInfo {
     }
     getRealContainingOneof = method;
   }
-
 
   private final FieldDescriptor field;
   private final Message containingPrototype;

@@ -12,7 +12,11 @@ dependencies {
 
 protobuf {
   protoc {
-    artifact.set("com.google.protobuf:protoc:${System.getenv("PROTOBUF_VERSION") ?: "4.28.2"}")
+    artifact.set(
+      "com.google.protobuf:protobuf-bom:${System.getenv(
+        "PROTOBUF_VERSION",
+      ).orEmpty().ifEmpty { "4.28.2" }}",
+    )
   }
 
   descriptorSetOptions.enabled.set(false)

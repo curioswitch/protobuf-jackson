@@ -10,7 +10,7 @@ rootProject.extra["versions"] = dependencyVersions
 val DEPENDENCY_BOMS = listOf(
   "com.fasterxml.jackson:jackson-bom:2.16.1",
   "com.google.guava:guava-bom:33.0.0-jre",
-  "com.google.protobuf:protobuf-bom:${System.getenv("PROTOBUF_VERSION") ?: "4.28.2"}",
+  "com.google.protobuf:protobuf-bom:${System.getenv("PROTOBUF_VERSION").orEmpty().ifEmpty { "4.28.2" }}",
   "org.junit:junit-bom:5.10.1",
 )
 
@@ -18,7 +18,7 @@ val DEPENDENCY_SETS = listOf(
   DependencySet(
     "com.google.errorprone",
     // Error Prone versions tied to protobuf
-    if (System.getenv("PROTOBUF_VERSION") == null) "2.33.0" else "2.18.0",
+    if (System.getenv("PROTOBUF_VERSION").orEmpty().isEmpty()) "2.33.0" else "2.18.0",
     listOf("error_prone_annotations", "error_prone_core")
   )
 )

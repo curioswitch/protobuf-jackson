@@ -21,6 +21,8 @@ jobs:
           - 11
           - 17
           - 21
+        protobuf-version:
+          - '' # Use from source code
         include:
           - os: ubuntu-latest
             test-java-version: 21
