@@ -25,10 +25,10 @@ jobs:
           - '' # Use from source code
         include:
           - os: ubuntu-latest
-            test-java-version: 21
+            test-java-version: 17
             protobuf-version: 3.18.0
           - os: ubuntu-latest
-            test-java-version: 21
+            test-java-version: 17
             coverage: true
     steps:
       - uses: actions/checkout@v2
