@@ -24,6 +24,8 @@ protobuf {
 }
 
 tasks {
+  val generateProto = named("generateProto")
+
   withType<JavaCompile>().configureEach {
     with(options) {
       release.set(8)
@@ -39,8 +41,12 @@ tasks {
     }
   }
 
+  sourcesJar {
+    dependsOn(generateProto)
+  }
+
   spotlessJava {
-    dependsOn(named("generateProto"))
+    dependsOn(generateProto)
   }
 
   spotlessJavaCheck {
