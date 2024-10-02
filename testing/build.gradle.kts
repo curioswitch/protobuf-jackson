@@ -39,6 +39,10 @@ tasks {
     }
   }
 
+  spotlessJava {
+    dependsOn(named("generateProto"))
+  }
+
   spotlessJavaCheck {
     enabled = false
   }
