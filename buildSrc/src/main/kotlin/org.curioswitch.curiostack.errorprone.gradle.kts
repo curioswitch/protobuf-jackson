@@ -18,6 +18,12 @@ tasks {
   withType<JavaCompile>().configureEach {
     with(options) {
       errorprone {
+        if (!System.getenv("PROTOBUF_VERSION").orEmpty().isEmpty()) {
+          // Newer versions of error prone do not work with older protobuf, and we
+          // don't need it in our legacy check anyways.
+          enabled = false
+        }
+
         disableWarningsInGeneratedCode.set(true)
         allDisabledChecksAsWarnings.set(true)
 

@@ -17,8 +17,7 @@ val DEPENDENCY_BOMS = listOf(
 val DEPENDENCY_SETS = listOf(
   DependencySet(
     "com.google.errorprone",
-    // Error Prone versions tied to protobuf
-    if (System.getenv("PROTOBUF_VERSION").orEmpty().isEmpty()) "2.33.0" else "2.18.0",
+    "2.33.0",
     listOf("error_prone_annotations", "error_prone_core")
   )
 )
