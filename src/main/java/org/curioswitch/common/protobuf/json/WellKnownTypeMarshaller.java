@@ -341,7 +341,7 @@ abstract class WellKnownTypeMarshaller<T extends Message> extends TypeSpecificMa
       Struct.Builder builder = (Struct.Builder) messageBuilder;
       while (parser.nextValue() != JsonToken.END_OBJECT) {
         builder.putFields(
-            parser.getCurrentName(), ValueMarshaller.INSTANCE.readValue(parser, currentDepth + 1));
+            parser.currentName(), ValueMarshaller.INSTANCE.readValue(parser, currentDepth + 1));
       }
     }
 
@@ -476,7 +476,7 @@ abstract class WellKnownTypeMarshaller<T extends Message> extends TypeSpecificMa
         return;
       }
       Any.Builder builder = (Any.Builder) messageBuilder;
-      if (!parser.getCurrentName().equals("@type")) {
+      if (!parser.currentName().equals("@type")) {
         throw new InvalidProtocolBufferException(
             "MessageMarshaller requires @type to must be the "
                 + "first field of an Any. If you need to support @type in any location, use "
@@ -488,7 +488,7 @@ abstract class WellKnownTypeMarshaller<T extends Message> extends TypeSpecificMa
       builder.setTypeUrl(typeUrl);
       if (contentMarshaller instanceof WellKnownTypeMarshaller) {
         parser.nextValue();
-        if (parser.getCurrentName().equals("value")) {
+        if (parser.currentName().equals("value")) {
           builder.setValue(contentMarshaller.readValue(parser, currentDepth).toByteString());
         }
         // Well-known types will not finish parsing the current object (they don't readValue
