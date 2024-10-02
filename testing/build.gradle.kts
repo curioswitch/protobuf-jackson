@@ -24,6 +24,8 @@ protobuf {
 }
 
 tasks {
+  val generateProto = named("generateProto")
+
   withType<JavaCompile>().configureEach {
     with(options) {
       release.set(8)
@@ -37,6 +39,14 @@ tasks {
       // protoc generates code deprecated code so disable the lint.
       compilerArgs.add("-Xlint:-deprecation")
     }
+  }
+
+  sourcesJar {
+    dependsOn(generateProto)
+  }
+
+  spotlessJava {
+    dependsOn(generateProto)
   }
 
   spotlessJavaCheck {

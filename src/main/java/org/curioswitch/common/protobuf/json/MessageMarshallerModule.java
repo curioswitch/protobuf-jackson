@@ -63,8 +63,8 @@ public final class MessageMarshallerModule extends SimpleModule {
 
     private static final long serialVersionUID = 2347902651812283460L;
 
-    private final T prototype;
-    private final MessageMarshaller marshaller;
+    private final transient T prototype;
+    private final transient MessageMarshaller marshaller;
 
     MessageDeserializer(T prototype, MessageMarshaller marshaller) {
       super(prototype.getClass());

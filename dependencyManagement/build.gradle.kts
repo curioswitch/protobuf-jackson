@@ -17,8 +17,7 @@ val DEPENDENCY_BOMS = listOf(
 val DEPENDENCY_SETS = listOf(
   DependencySet(
     "com.google.errorprone",
-    // Error Prone versions tied to protobuf
-    if (System.getenv("PROTOBUF_VERSION").orEmpty().isEmpty()) "2.33.0" else "2.18.0",
+    "2.33.0",
     listOf("error_prone_annotations", "error_prone_core")
   )
 )
@@ -26,7 +25,7 @@ val DEPENDENCY_SETS = listOf(
 val DEPENDENCIES = listOf(
   "com.google.code.findbugs:annotations:3.0.1u2",
   "com.google.code.findbugs:jsr305:3.0.2",
-  "com.uber.nullaway:nullaway:0.10.10",
+  "com.uber.nullaway:nullaway:0.11.3",
   "net.bytebuddy:byte-buddy:1.14.4",
   "org.assertj:assertj-core:3.24.2",
 )

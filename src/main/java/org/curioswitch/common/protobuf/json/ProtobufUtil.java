@@ -340,7 +340,7 @@ final class ProtobufUtil {
     return (char) (c + ('A' - 'a'));
   }
 
-  @SuppressWarnings("NarrowingCompoundAssignment")
+  @SuppressWarnings({"NarrowingCompoundAssignment", "lossy-conversions"})
   private static Duration normalizedDuration(long seconds, int nanos) {
     if (nanos <= -NANOS_PER_SECOND || nanos >= NANOS_PER_SECOND) {
       seconds = checkedAdd(seconds, nanos / NANOS_PER_SECOND);
