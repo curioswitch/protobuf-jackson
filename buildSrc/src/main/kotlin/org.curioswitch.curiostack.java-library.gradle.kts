@@ -64,6 +64,7 @@ tasks {
       compilerArgs.addAll(listOf(
         "-Xlint:all",
         "-Xlint:-options",
+        "-Xlint:-serial",
         "-Werror"
       ))
 
