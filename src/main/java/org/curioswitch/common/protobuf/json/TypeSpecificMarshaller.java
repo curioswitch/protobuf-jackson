@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods;
 import net.bytebuddy.description.type.TypeDefinition;
@@ -38,6 +37,8 @@ import net.bytebuddy.jar.asm.ClassWriter;
  * code and for others, bytecode is automatically generated for handling the type.
  */
 public abstract class TypeSpecificMarshaller<T extends Message> {
+
+  private static final MarshallerCache MARSHALLER_CACHE = new MarshallerCache();
 
   private final T prototype;
 
@@ -131,27 +132,12 @@ public abstract class TypeSpecificMarshaller<T extends Message> {
     return prototype;
   }
 
-  static <T extends Message> void buildAndAdd(
-      T prototype,
-      boolean includingDefaultValueFields,
-      Set<FieldDescriptor> fieldsToAlwaysOutput,
-      boolean preservingProtoFieldNames,
-      boolean ignoringUnknownFields,
-      boolean printingEnumsAsInts,
-      boolean sortingMapKeys,
-      Map<Descriptor, TypeSpecificMarshaller<?>> builtMarshallers) {
-    if (builtMarshallers.containsKey(prototype.getDescriptorForType())) {
+  static void buildAndAdd(
+      MarshallerOptions options, Map<Descriptor, TypeSpecificMarshaller<?>> builtMarshallers) {
+    if (builtMarshallers.containsKey(options.getPrototype().getDescriptorForType())) {
       return;
     }
-    buildOrFindMarshaller(
-        prototype,
-        includingDefaultValueFields,
-        fieldsToAlwaysOutput,
-        preservingProtoFieldNames,
-        ignoringUnknownFields,
-        printingEnumsAsInts,
-        sortingMapKeys,
-        builtMarshallers);
+    buildOrFindMarshaller(options, builtMarshallers);
     Map<String, TypeSpecificMarshaller<?>> builtMarshallersByFieldName = new HashMap<>();
     for (Map.Entry<Descriptor, TypeSpecificMarshaller<?>> entry : builtMarshallers.entrySet()) {
       builtMarshallersByFieldName.put(
@@ -178,22 +164,16 @@ public abstract class TypeSpecificMarshaller<T extends Message> {
   }
 
   private static <T extends Message> void buildOrFindMarshaller(
-      T prototype,
-      boolean includingDefaultValueFields,
-      Set<FieldDescriptor> fieldsToAlwaysOutput,
-      boolean preservingProtoFieldNames,
-      boolean ignoringUnknownFields,
-      boolean printingEnumsAsInts,
-      boolean sortingMapKeys,
+      MarshallerOptions options,
       Map<Descriptor, TypeSpecificMarshaller<?>> alreadyBuiltMarshallers) {
-    Descriptor descriptor = prototype.getDescriptorForType();
+    Descriptor descriptor = options.getPrototype().getDescriptorForType();
     if (alreadyBuiltMarshallers.containsKey(descriptor)) {
       return;
     }
 
     TypeDefinition superType =
         TypeDescription.Generic.Builder.parameterizedType(
-                TypeSpecificMarshaller.class, prototype.getClass())
+                TypeSpecificMarshaller.class, options.getPrototype().getClass())
             .build();
 
     // Use default ConstructorStrategy which will generate a constructor with a Message argument of
@@ -208,7 +188,7 @@ public abstract class TypeSpecificMarshaller<T extends Message> {
 
     List<Message> nestedMessagePrototypes = new ArrayList<>();
     for (FieldDescriptor f : descriptor.getFields()) {
-      ProtoFieldInfo field = new ProtoFieldInfo(f, prototype);
+      ProtoFieldInfo field = new ProtoFieldInfo(f, options.getPrototype());
 
       // Store a pre-encoded version of the field variableName to avoid re-encoding all the time.
       String fieldName = CodeGenUtil.fieldNameForSerializedFieldName(field);
@@ -220,7 +200,8 @@ public abstract class TypeSpecificMarshaller<T extends Message> {
                   Modifier.PRIVATE | Modifier.STATIC | Modifier.FINAL)
               .initializer(
                   new SetSerializedFieldName(
-                      fieldName, preservingProtoFieldNames ? f.getName() : f.getJsonName()));
+                      fieldName,
+                      options.isPreservingProtoFieldNames() ? f.getName() : f.getJsonName()));
       if (field.valueJavaType() != JavaType.MESSAGE) {
         continue;
       }
@@ -244,53 +225,60 @@ public abstract class TypeSpecificMarshaller<T extends Message> {
     }
 
     TypeSpecificMarshaller<?> marshaller;
-    buddy =
-        buddy
-            .defineMethod("doMerge", void.class, Modifier.FINAL | Modifier.PROTECTED)
-            .withParameter(JsonParser.class, "parser")
-            .withParameter(int.class, "currentDepth")
-            .withParameter(Message.Builder.class, "messageBuilder")
-            .throwing(IOException.class)
-            .intercept(new DoParse(prototype, ignoringUnknownFields))
-            .defineMethod("doWrite", void.class, Modifier.FINAL | Modifier.PROTECTED)
-            .withParameter(prototype.getClass(), "message")
-            .withParameter(JsonGenerator.class, "gen")
-            .throwing(IOException.class)
-            .intercept(
-                new DoWrite(
-                    prototype,
-                    includingDefaultValueFields,
-                    fieldsToAlwaysOutput,
-                    printingEnumsAsInts,
-                    sortingMapKeys));
-    try {
-      marshaller =
+    TypeSpecificMarshaller<?> cached = MARSHALLER_CACHE.get(options);
+    if (cached != null) {
+      marshaller = cached;
+    } else {
+      buddy =
           buddy
-              .make()
-              .load(TypeSpecificMarshaller.class.getClassLoader())
-              .getLoaded()
-              .getConstructor(prototype.getClass())
-              .newInstance(prototype);
-    } catch (InstantiationException
-        | NoSuchMethodException
-        | InvocationTargetException
-        | IllegalAccessException e) {
-      throw new IllegalStateException(
-          "Could not generate marshaller, this is generally a bug in this library. "
-              + "Please file a report at https://github.com/curioswitch/curiostack with this stack "
-              + "trace and an example proto to reproduce.",
-          e);
+              .defineMethod("doMerge", void.class, Modifier.FINAL | Modifier.PROTECTED)
+              .withParameter(JsonParser.class, "parser")
+              .withParameter(int.class, "currentDepth")
+              .withParameter(Message.Builder.class, "messageBuilder")
+              .throwing(IOException.class)
+              .intercept(new DoParse(options.getPrototype(), options.isIgnoringUnknownFields()))
+              .defineMethod("doWrite", void.class, Modifier.FINAL | Modifier.PROTECTED)
+              .withParameter(options.getPrototype().getClass(), "message")
+              .withParameter(JsonGenerator.class, "gen")
+              .throwing(IOException.class)
+              .intercept(
+                  new DoWrite(
+                      options.getPrototype(),
+                      options.isIncludingDefaultValueFields(),
+                      options.getFieldsToAlwaysOutput(),
+                      options.isPrintingEnumsAsInts(),
+                      options.isSortingMapKeys()));
+      try {
+        marshaller =
+            buddy
+                .make()
+                .load(TypeSpecificMarshaller.class.getClassLoader())
+                .getLoaded()
+                .getConstructor(options.getPrototype().getClass())
+                .newInstance(options.getPrototype());
+        MARSHALLER_CACHE.put(options, marshaller);
+      } catch (InstantiationException
+          | NoSuchMethodException
+          | InvocationTargetException
+          | IllegalAccessException e) {
+        throw new IllegalStateException(
+            "Could not generate marshaller, this is generally a bug in this library. "
+                + "Please file a report at https://github.com/curioswitch/curiostack with this stack "
+                + "trace and an example proto to reproduce.",
+            e);
+      }
     }
     alreadyBuiltMarshallers.put(descriptor, marshaller);
     for (Message nestedPrototype : nestedMessagePrototypes) {
       buildOrFindMarshaller(
-          nestedPrototype,
-          includingDefaultValueFields,
-          fieldsToAlwaysOutput,
-          preservingProtoFieldNames,
-          ignoringUnknownFields,
-          printingEnumsAsInts,
-          sortingMapKeys,
+          new MarshallerOptions(
+              nestedPrototype,
+              options.isIncludingDefaultValueFields(),
+              options.getFieldsToAlwaysOutput(),
+              options.isPreservingProtoFieldNames(),
+              options.isIgnoringUnknownFields(),
+              options.isPrintingEnumsAsInts(),
+              options.isSortingMapKeys()),
           alreadyBuiltMarshallers);
     }
   }

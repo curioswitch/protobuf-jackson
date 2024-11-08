@@ -492,13 +492,14 @@ public class MessageMarshaller {
 
       for (Message prototype : prototypes) {
         TypeSpecificMarshaller.buildAndAdd(
-            prototype,
-            includingDefaultValueFields,
-            fieldsToAlwaysOutput,
-            preservingProtoFieldNames,
-            ignoringUnknownFields,
-            printingEnumsAsInts,
-            sortingMapKeys,
+            new MarshallerOptions(
+                prototype,
+                includingDefaultValueFields,
+                fieldsToAlwaysOutput,
+                preservingProtoFieldNames,
+                ignoringUnknownFields,
+                printingEnumsAsInts,
+                sortingMapKeys),
             builtParsers);
       }
 
