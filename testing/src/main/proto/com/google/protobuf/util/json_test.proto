@@ -186,6 +186,9 @@ message TestRecursive {
 message TestRegression {
   // https://github.com/curioswitch/curiostack/issues/7
   repeated int64 feedIds = 1;
+
+  // https://github.com/curioswitch/curiostack/issues/43
+  string class = 2;
 }
 
 message TestFieldOrder {

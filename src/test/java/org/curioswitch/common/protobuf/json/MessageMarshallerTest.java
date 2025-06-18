@@ -1005,6 +1005,11 @@ class MessageMarshallerTest {
   }
 
   @Test
+  void protoFieldReservedName() throws Exception {
+    assertMatchesUpstream(TestRegression.newBuilder().setClass_("hello").build());
+  }
+
+  @Test
   void fieldsOutOfOrder() throws Exception {
     assertMatchesUpstream(TestFieldOrder.newBuilder().setValue1("foo").setValue2("bar").build());
   }
