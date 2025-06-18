@@ -14,7 +14,11 @@ import com.google.protobuf.Descriptors.FieldDescriptor.Type;
 import com.google.protobuf.Message;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Nullable;
 
 /**
@@ -22,6 +26,26 @@ import javax.annotation.Nullable;
  * code naming conventions and value type information.
  */
 class ProtoFieldInfo {
+
+  // https://github.com/protocolbuffers/protobuf/blob/1016f1b1a1a3db9425ceaba620e2dd667f0f4de4/src/google/protobuf/compiler/java/names.cc#L58
+  private static final Set<String> RESERVED_NAMES =
+      Collections.unmodifiableSet(
+          new HashSet<>(
+              Arrays.asList(
+                  // java.lang.Object:
+                  "Class",
+                  // com.google.protobuf.MessageLiteOrBuilder:
+                  "DefaultInstanceForType",
+                  // com.google.protobuf.MessageLite:
+                  "ParserForType",
+                  "SerializedSize",
+                  // com.google.protobuf.MessageOrBuilder:
+                  "AllFields",
+                  "DescriptorForType",
+                  "InitializationErrorString",
+                  "UnknownFields",
+                  // obsolete. kept for backwards compatibility of generated code
+                  "CachedSize")));
 
   @Nullable static final Method getRealContainingOneof;
 
@@ -49,7 +73,11 @@ class ProtoFieldInfo {
     this.containingPrototype = requireNonNull(containingPrototype, "containingPrototype");
     builderClass = containingPrototype.newBuilderForType().getClass();
 
-    camelCaseName = underscoresToUpperCamelCase(field.getName());
+    String fieldName = underscoresToUpperCamelCase(field.getName());
+    if (RESERVED_NAMES.contains(fieldName)) {
+      fieldName += "_";
+    }
+    camelCaseName = fieldName;
 
     if (field.isMapField()) {
       Descriptor mapType = field.getMessageType();
