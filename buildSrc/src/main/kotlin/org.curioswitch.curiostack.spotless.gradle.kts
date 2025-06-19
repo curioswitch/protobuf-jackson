@@ -34,7 +34,7 @@ spotless {
       "docs/**/*.md",
       "*.sh",
       "src/**/*.properties")
-    indentWithSpaces()
+    leadingTabsToSpaces()
     trimTrailingWhitespace()
     endWithNewline()
   }

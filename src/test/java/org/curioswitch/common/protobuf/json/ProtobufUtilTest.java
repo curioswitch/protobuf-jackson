@@ -21,6 +21,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.support.ParameterDeclarations;
 
 class ProtobufUtilTest {
 
@@ -71,7 +72,8 @@ class ProtobufUtilTest {
   static class InvalidDurationsSource implements ArgumentsProvider {
 
     @Override
-    public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+    public Stream<? extends Arguments> provideArguments(
+        ParameterDeclarations parameters, ExtensionContext context) {
       return Stream.of(
               // Value too small
               Duration.newBuilder().setSeconds(ProtobufUtil.DURATION_SECONDS_MIN - 1).build(),
@@ -139,7 +141,8 @@ class ProtobufUtilTest {
   static class InvalidTimestampsSource implements ArgumentsProvider {
 
     @Override
-    public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+    public Stream<? extends Arguments> provideArguments(
+        ParameterDeclarations parameters, ExtensionContext context) {
       return Stream.of(
               // Invalid nanos value.
               Timestamp.newBuilder().setNanos(1000000000).build())

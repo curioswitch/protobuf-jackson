@@ -347,7 +347,9 @@ final class DoWrite implements ByteCodeAppender, Implementation {
           || ProtobufUtil.hasOptionalKeyword(field.descriptor())
           // Always skip empty optional message fields. If not we will recurse indefinitely if
           // a message has itself as a sub-field.
-          || (field.descriptor().isOptional() && field.valueJavaType() == JavaType.MESSAGE)) {
+          || (!field.descriptor().isRequired()
+              && !field.descriptor().isRepeated()
+              && field.valueJavaType() == JavaType.MESSAGE)) {
         stackManipulations.add(
             checkDefaultValue(field, locals, getValue, getDefaultInstance, afterSerializeField));
       }
