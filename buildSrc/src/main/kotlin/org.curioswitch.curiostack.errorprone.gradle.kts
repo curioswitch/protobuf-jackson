@@ -28,7 +28,9 @@ tasks {
         allDisabledChecksAsWarnings.set(true)
 
         disable("AndroidJdkLibsChecker")
-        disable("Java7ApiChecker")
+
+        // TODO: Consider finding this annotation
+        disable("AddNullMarkedToPackageInfo")
 
         disable("ImmutableMemberCollection")
 

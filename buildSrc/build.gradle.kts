@@ -12,12 +12,12 @@ repositories {
 
 dependencies {
   // When updating, update above in plugins too
-  implementation("com.diffplug.spotless:spotless-plugin-gradle:6.25.0")
-  implementation("com.netflix.nebula:nebula-release-plugin:17.2.1")
-  implementation("io.github.gradle-nexus:publish-plugin:1.3.0")
-  implementation("me.champeau.jmh:jmh-gradle-plugin:0.7.1")
-  implementation("net.ltgt.gradle:gradle-errorprone-plugin:3.1.0")
-  implementation("net.ltgt.gradle:gradle-nullaway-plugin:1.5.0")
+  implementation("com.diffplug.spotless:spotless-plugin-gradle:7.0.4")
+  implementation("com.netflix.nebula:nebula-release-plugin:20.2.0")
+  implementation("io.github.gradle-nexus:publish-plugin:2.0.0")
+  implementation("me.champeau.jmh:jmh-gradle-plugin:0.7.3")
+  implementation("net.ltgt.gradle:gradle-errorprone-plugin:4.2.0")
+  implementation("net.ltgt.gradle:gradle-nullaway-plugin:2.2.0")
 }
 
 spotless {

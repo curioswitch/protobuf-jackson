@@ -42,6 +42,7 @@ dependencies {
   compileOnly("com.google.code.findbugs:annotations")
 
   testImplementation(project(":testing"))
+  testImplementation("com.google.guava:guava")
   testImplementation("com.google.protobuf:protobuf-java-util")
 }
 
@@ -53,6 +54,7 @@ testing {
         implementation(project(":testing"))
 
         implementation("com.fasterxml.jackson.core:jackson-databind")
+        implementation("com.google.guava:guava")
         implementation("com.google.protobuf:protobuf-java-util")
       }
     }

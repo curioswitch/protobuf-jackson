@@ -54,6 +54,7 @@ testing {
       implementation("org.junit.jupiter:junit-jupiter-params")
 
       runtimeOnly("org.junit.jupiter:junit-jupiter-engine")
+      runtimeOnly("org.junit.platform:junit-platform-launcher")
     }
   }
 }
