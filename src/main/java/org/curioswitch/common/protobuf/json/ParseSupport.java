@@ -463,6 +463,11 @@ public final class ParseSupport {
     return name1.equals(name2);
   }
 
+  /** Skips children of an object or array field, needed when encountering an unknown field. */
+  public static void skipChildren(JsonParser parser) throws IOException {
+    parser.skipChildren();
+  }
+
   /** Parses a long out of the input, using the optimized path when the value is not quoted. */
   private static long parseLong(JsonParser parser) throws IOException {
     if (parser.currentToken() == JsonToken.VALUE_NUMBER_INT) {

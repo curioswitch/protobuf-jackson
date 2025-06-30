@@ -150,6 +150,7 @@ final class DoParse implements ByteCodeAppender, Implementation {
   private static final StackManipulation ParseSupport_parseMessage;
 
   private static final StackManipulation ParseSupport_fieldNamesEqual;
+  private static final StackManipulation ParseSupport_skipChildren;
 
   static {
     try {
@@ -221,6 +222,8 @@ final class DoParse implements ByteCodeAppender, Implementation {
           invoke(
               ParseSupport.class.getDeclaredMethod(
                   "fieldNamesEqual", JsonParser.class, String.class, String.class));
+      ParseSupport_skipChildren =
+          invoke(ParseSupport.class.getDeclaredMethod("skipChildren", JsonParser.class));
     } catch (NoSuchMethodException e) {
       throw new IllegalStateException("Could not find expected method.", e);
     }
@@ -403,7 +406,10 @@ final class DoParse implements ByteCodeAppender, Implementation {
       stackManipulations.add(new SetJumpTargetLabel(afterField));
     }
     if (ignoringUnknownFields) {
-      // If we found no corresponding field number, jump back to the beginning of the while loop.
+      // If we found no corresponding field number, jump back to the beginning of the while loop
+      // after skipping any children.
+      stackManipulations.add(locals.load(LocalVariable.parser));
+      stackManipulations.add(ParseSupport_skipChildren);
       stackManipulations.add(new Goto(beforeReadField));
     } else {
       // If we found no corresponding field number, throw an exception.

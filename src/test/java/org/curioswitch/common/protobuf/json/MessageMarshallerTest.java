@@ -1004,9 +1004,21 @@ class MessageMarshallerTest {
     assertMatchesUpstream(TestRegression.newBuilder().addFeedIds(1).build());
   }
 
+  // https://github.com/curioswitch/curiostack/issues/43
   @Test
   void protoFieldReservedName() throws Exception {
     assertMatchesUpstream(TestRegression.newBuilder().setClass_("hello").build());
+  }
+
+  // https://github.com/curioswitch/protobuf-jackson/issues/49
+  @Test
+  void unknownMessageField() throws Exception {
+    TestAllTypes.Builder builder1 = TestAllTypes.newBuilder();
+    mergeFromJson(
+        /* ignoringUnknownFields= */ true,
+        "{\"unknown\": {\"test\": \"111\"}, \"optional_string\": 1}",
+        builder1);
+    assertThat(builder1.build().getOptionalString()).isEqualTo("1");
   }
 
   @Test
