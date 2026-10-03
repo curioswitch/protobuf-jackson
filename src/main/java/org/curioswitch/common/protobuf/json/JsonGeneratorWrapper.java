@@ -5,9 +5,9 @@
 
 package org.curioswitch.common.protobuf.json;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.util.JsonGeneratorDelegate;
 import java.io.IOException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.util.JsonGeneratorDelegate;
 
 final class JsonGeneratorWrapper extends JsonGeneratorDelegate {
 

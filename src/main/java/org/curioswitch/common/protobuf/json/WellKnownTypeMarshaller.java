@@ -7,9 +7,6 @@ package org.curioswitch.common.protobuf.json;
 
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
 import com.google.protobuf.Any;
 import com.google.protobuf.BoolValue;
 import com.google.protobuf.BytesValue;
@@ -34,6 +31,9 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
 
 /**
  * A {@link TypeSpecificMarshaller} for one of the message types that has a special JSON
@@ -270,7 +270,7 @@ abstract class WellKnownTypeMarshaller<T extends Message> extends TypeSpecificMa
         builder.mergeFrom(ProtobufUtil.parseTimestamp(ParseSupport.parseString(parser)));
       } catch (ParseException e) {
         throw new InvalidProtocolBufferException(
-            "Failed to readValue timestamp: " + parser.getText(), new IOException(e));
+            "Failed to readValue timestamp: " + parser.getString(), new IOException(e));
       }
     }
 
@@ -296,7 +296,7 @@ abstract class WellKnownTypeMarshaller<T extends Message> extends TypeSpecificMa
         builder.mergeFrom(ProtobufUtil.parseDuration(ParseSupport.parseString(parser)));
       } catch (ParseException e) {
         throw new InvalidProtocolBufferException(
-            "Failed to readValue duration: " + parser.getText(), new IOException(e));
+            "Failed to readValue duration: " + parser.getString(), new IOException(e));
       }
     }
 
@@ -348,7 +348,7 @@ abstract class WellKnownTypeMarshaller<T extends Message> extends TypeSpecificMa
     @Override
     protected void doWrite(Struct message, JsonGenerator gen) throws IOException {
       for (Map.Entry<String, Value> entry : message.getFieldsMap().entrySet()) {
-        gen.writeFieldName(entry.getKey());
+        gen.writeName(entry.getKey());
         ValueMarshaller.INSTANCE.writeValue(entry.getValue(), gen);
       }
     }
@@ -382,7 +382,7 @@ abstract class WellKnownTypeMarshaller<T extends Message> extends TypeSpecificMa
         ListValue.Builder listValueBuilder = builder.getListValueBuilder();
         ListValueMarshaller.INSTANCE.mergeValue(parser, currentDepth + 1, listValueBuilder);
       } else {
-        throw new IllegalStateException("Unexpected json data: " + parser.getText());
+        throw new IllegalStateException("Unexpected json data: " + parser.getString());
       }
     }
 
@@ -427,7 +427,8 @@ abstract class WellKnownTypeMarshaller<T extends Message> extends TypeSpecificMa
         throws IOException {
       JsonToken token = parser.currentToken();
       if (token != JsonToken.START_ARRAY) {
-        throw new InvalidProtocolBufferException("Expect an array but found: " + parser.getText());
+        throw new InvalidProtocolBufferException(
+            "Expect an array but found: " + parser.getString());
       }
       ListValue.Builder builder = (ListValue.Builder) messageBuilder;
       while (parser.nextValue() != JsonToken.END_ARRAY) {
@@ -481,7 +482,7 @@ abstract class WellKnownTypeMarshaller<T extends Message> extends TypeSpecificMa
             "MessageMarshaller requires @type to must be the "
                 + "first field of an Any. If you need to support @type in any location, use "
                 + "upstream JsonFormat. Found: "
-                + parser.getText());
+                + parser.getString());
       }
       String typeUrl = ParseSupport.parseString(parser);
       TypeSpecificMarshaller<?> contentMarshaller = marshallerRegistry.findByTypeUrl(typeUrl);
@@ -496,7 +497,7 @@ abstract class WellKnownTypeMarshaller<T extends Message> extends TypeSpecificMa
         // so we close it here.
         if (parser.nextValue() != JsonToken.END_OBJECT) {
           throw new InvalidProtocolBufferException(
-              "Expected end of object, got: " + parser.getText());
+              "Expected end of object, got: " + parser.getString());
         }
       } else {
         builder.setValue(
@@ -519,10 +520,10 @@ abstract class WellKnownTypeMarshaller<T extends Message> extends TypeSpecificMa
       gen.writeStartObject();
       String typeUrl = message.getTypeUrl();
       TypeSpecificMarshaller<?> serializer = marshallerRegistry.findByTypeUrl(typeUrl);
-      gen.writeFieldName("@type");
+      gen.writeName("@type");
       gen.writeString(typeUrl);
       if (serializer instanceof WellKnownTypeMarshaller) {
-        gen.writeFieldName("value");
+        gen.writeName("value");
         serializer.writeValue(message.getValue(), gen);
       } else {
         serializer.doWrite(message.getValue(), gen);

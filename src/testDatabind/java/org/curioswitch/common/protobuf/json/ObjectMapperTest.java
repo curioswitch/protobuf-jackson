@@ -7,38 +7,35 @@ package org.curioswitch.common.protobuf.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import com.fasterxml.jackson.databind.util.TokenBuffer;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import com.google.protobuf.util.JsonTestProto;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.exc.StreamReadException;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ValueSerializer;
+import tools.jackson.databind.deser.std.StdDeserializer;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ser.std.StdSerializer;
+import tools.jackson.databind.util.TokenBuffer;
 
 class ObjectMapperTest {
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-  private static final JsonSerializer<JsonTestProto.TestAllTypes.NestedMessage> NESTED_SERIALIZER =
+  private static final ValueSerializer<JsonTestProto.TestAllTypes.NestedMessage> NESTED_SERIALIZER =
       new StdSerializer<JsonTestProto.TestAllTypes.NestedMessage>(
           JsonTestProto.TestAllTypes.NestedMessage.class) {
         @Override
         public void serialize(
             JsonTestProto.TestAllTypes.NestedMessage value,
             JsonGenerator gen,
-            SerializerProvider serializers)
-            throws IOException {
+            SerializationContext serializers) {
           gen.writeString("nested=" + value.getValue());
         }
       };
@@ -49,27 +46,29 @@ class ObjectMapperTest {
               JsonTestProto.TestAllTypes.NestedMessage.class) {
             @Override
             public JsonTestProto.TestAllTypes.NestedMessage deserialize(
-                JsonParser p, DeserializationContext ctxt) throws IOException {
+                JsonParser p, DeserializationContext ctxt) {
               String value = p.getValueAsString();
               if (!value.startsWith("nested=")) {
-                throw new JsonParseException("invalid nexted message");
+                throw new StreamReadException(p, "invalid nexted message");
               }
               int val = Integer.parseInt(value.substring("nested=".length()));
               return JsonTestProto.TestAllTypes.NestedMessage.newBuilder().setValue(val).build();
             }
           };
 
-  static {
-    MessageMarshaller marshaller =
-        MessageMarshaller.builder()
-            .register(JsonTestProto.TestAllTypes.getDefaultInstance())
-            .build();
-    OBJECT_MAPPER.registerModule(MessageMarshallerModule.of(marshaller));
-    OBJECT_MAPPER.registerModule(
-        new SimpleModule()
-            .addSerializer(NESTED_SERIALIZER)
-            .addDeserializer(JsonTestProto.TestAllTypes.NestedMessage.class, NESTED_DESERIALIZER));
-  }
+  private static final ObjectMapper OBJECT_MAPPER =
+      JsonMapper.builder()
+          .addModule(
+              MessageMarshallerModule.of(
+                  MessageMarshaller.builder()
+                      .register(JsonTestProto.TestAllTypes.getDefaultInstance())
+                      .build()))
+          .addModule(
+              new SimpleModule()
+                  .addSerializer(NESTED_SERIALIZER)
+                  .addDeserializer(
+                      JsonTestProto.TestAllTypes.NestedMessage.class, NESTED_DESERIALIZER))
+          .build();
 
   @Test
   void customSerializer() throws Exception {
@@ -87,9 +86,9 @@ class ObjectMapperTest {
     JsonTestProto.TestAllTypes allTypes =
         JsonTestProto.TestAllTypes.newBuilder().setOptionalNestedMessage(message).build();
 
+    // Whitespace is determined by the ObjectMapper, which does not indent by default.
     String allTypesSerialized = OBJECT_MAPPER.writeValueAsString(allTypes);
-    assertThat(allTypesSerialized)
-        .isEqualTo("{\n" + "  \"optionalNestedMessage\": \"nested=900\"\n" + "}");
+    assertThat(allTypesSerialized).isEqualTo("{\"optionalNestedMessage\":\"nested=900\"}");
 
     JsonTestProto.TestAllTypes deserializedAllTypes =
         OBJECT_MAPPER.readValue(allTypesSerialized, JsonTestProto.TestAllTypes.class);
@@ -97,9 +96,19 @@ class ObjectMapperTest {
   }
 
   @Test
+  void whitespaceFollowsObjectMapper() throws Exception {
+    JsonTestProto.TestAllTypes message =
+        JsonTestProto.TestAllTypes.newBuilder().setOptionalInt32(1).build();
+
+    assertThat(OBJECT_MAPPER.writeValueAsString(message)).isEqualTo("{\"optionalInt32\":1}");
+    assertThat(OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(message))
+        .isEqualTo("{\n  \"optionalInt32\" : 1\n}");
+  }
+
+  @Test
   void doesNotCloseJsonGenerator() throws Exception {
     JsonGenerator generator =
-        new ObjectMapper().getFactory().createGenerator(new ByteArrayOutputStream());
+        JsonMapper.builder().build().createGenerator(new ByteArrayOutputStream());
     MessageMarshaller marshaller =
         MessageMarshaller.builder()
             .register(JsonTestProto.TestAllTypes.getDefaultInstance())
@@ -110,7 +119,7 @@ class ObjectMapperTest {
 
   @Test
   void doesNotCloseJsonParser() throws Exception {
-    JsonParser parser = new ObjectMapper().getFactory().createParser("{}");
+    JsonParser parser = JsonMapper.builder().build().createParser("{}");
     MessageMarshaller marshaller =
         MessageMarshaller.builder()
             .register(JsonTestProto.TestAllTypes.getDefaultInstance())
@@ -138,11 +147,11 @@ class ObjectMapperTest {
                     .build())
             .build();
 
-    ObjectMapper mapper = new ObjectMapper();
-    mapper.registerModule(MessageMarshallerModule.of(marshaller));
+    ObjectMapper mapper =
+        JsonMapper.builder().addModule(MessageMarshallerModule.of(marshaller)).build();
 
     // Use a jackson TokenBuffer to convert the message to a JsonNode
-    TokenBuffer buffer = new TokenBuffer(mapper.getFactory().getCodec(), false);
+    TokenBuffer buffer = TokenBuffer.forGeneration();
     mapper.writeValue(buffer, original);
     JsonParser parser = buffer.asParser();
 

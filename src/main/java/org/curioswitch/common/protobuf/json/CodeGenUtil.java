@@ -15,7 +15,9 @@ import java.util.List;
 import java.util.Map;
 import net.bytebuddy.description.field.FieldDescription;
 import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription.ForLoadedType;
 import net.bytebuddy.implementation.Implementation.Context;
+import net.bytebuddy.implementation.bytecode.Removal;
 import net.bytebuddy.implementation.bytecode.StackManipulation;
 import net.bytebuddy.implementation.bytecode.member.MethodInvocation;
 
@@ -57,6 +59,20 @@ final class CodeGenUtil {
   /** Returns a {@link StackManipulation} that invokes the given {@link Method}. */
   static StackManipulation invoke(Method method) {
     return MethodInvocation.invoke(new MethodDescription.ForLoadedMethod(method));
+  }
+
+  /**
+   * Returns a {@link StackManipulation} that invokes the given {@link Method} and discards its
+   * return value, if any. For example, Jackson 3 {@link tools.jackson.core.JsonGenerator} write
+   * methods return the generator.
+   */
+  static StackManipulation invokeIgnoringResult(Method method) {
+    StackManipulation invocation = invoke(method);
+    if (method.getReturnType() == void.class) {
+      return invocation;
+    }
+    return new StackManipulation.Compound(
+        invocation, Removal.of(new ForLoadedType(method.getReturnType())));
   }
 
   /** Returns a {@link Map} of names to class / instance fields. */

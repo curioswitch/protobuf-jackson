@@ -5,26 +5,28 @@
 
 package org.curioswitch.common.protobuf.json;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.Module;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.protobuf.Message;
 import java.io.IOException;
+import java.util.function.Function;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DatabindException;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JacksonModule;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ValueDeserializer;
+import tools.jackson.databind.ValueSerializer;
+import tools.jackson.databind.deser.std.StdDeserializer;
+import tools.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ser.std.StdSerializer;
 
 /**
- * A {@link Module} which can be registered to an {@link
- * com.fasterxml.jackson.databind.ObjectMapper} to enable it to marshal protobuf using {@link
- * MessageMarshaller}. If any modules registered after this one handle protobuf messages, they will
- * be used even when marshalling nested messages within {@link MessageMarshaller}. This can be used
- * to customize the marshalling of certain types when needed.
+ * A {@link JacksonModule} which can be registered to an {@link tools.jackson.databind.ObjectMapper}
+ * to enable it to marshal protobuf using {@link MessageMarshaller}. If any modules registered after
+ * this one handle protobuf messages, they will be used even when marshalling nested messages within
+ * {@link MessageMarshaller}. This can be used to customize the marshalling of certain types when
+ * needed.
  *
  * <p>For example:
  *
@@ -32,18 +34,19 @@ import java.io.IOException;
  * MessageMarshaller marshaller = MessageMarshaller.builder()
  *     .register(MyMessage.getDefaultInstance())
  *     .build();
- * ObjectMapper mapper = new ObjectMapper();
- * mapper.registerModule(MessageMarshallerModule.of(marshaller));
+ * ObjectMapper mapper = JsonMapper.builder()
+ *     .addModule(MessageMarshallerModule.of(marshaller))
+ *     .build();
  * mapper.writeValueAsString(MyMessage.newBuilder().setValue("hello!").build());
  * }</pre>
  */
 public final class MessageMarshallerModule extends SimpleModule {
 
   /**
-   * Returns a new {@link Module} which will use the provided {@link MessageMarshaller} to marshal
-   * protobuf messages.
+   * Returns a new {@link JacksonModule} which will use the provided {@link MessageMarshaller} to
+   * marshal protobuf messages.
    */
-  public static Module of(MessageMarshaller marshaller) {
+  public static JacksonModule of(MessageMarshaller marshaller) {
     return new MessageMarshallerModule(marshaller);
   }
 
@@ -73,15 +76,15 @@ public final class MessageMarshallerModule extends SimpleModule {
     }
 
     @Override
-    public T deserialize(JsonParser parser, DeserializationContext ctxt) throws IOException {
+    public T deserialize(JsonParser parser, DeserializationContext ctxt) {
       JsonParser wrapped =
           new JsonParserWrapper(
               parser,
               (p, clz) -> {
-                JsonDeserializer<?> deserializer;
+                ValueDeserializer<?> deserializer;
                 try {
                   deserializer = ctxt.findNonContextualValueDeserializer(ctxt.constructType(clz));
-                } catch (JsonMappingException e) {
+                } catch (DatabindException e) {
                   return JsonParserWrapper.NOT_DESERIALIZED;
                 }
                 if (deserializer == null) {
@@ -90,7 +93,11 @@ public final class MessageMarshallerModule extends SimpleModule {
                 return deserializer.deserialize(p, ctxt);
               });
       Message.Builder builder = prototype.newBuilderForType();
-      marshaller.mergeValue(wrapped, builder);
+      try {
+        marshaller.mergeValue(wrapped, builder);
+      } catch (IOException e) {
+        throw toJacksonException(e, message -> DatabindException.from(parser, message, e));
+      }
       @SuppressWarnings("unchecked") // newBuilderForType().build() always returns T.
       T message = (T) builder.build();
       return message;
@@ -104,21 +111,25 @@ public final class MessageMarshallerModule extends SimpleModule {
     private final MessageMarshaller marshaller;
 
     MessageSerializer(T prototype, MessageMarshaller marshaller) {
-      super(prototype.getClass(), true);
+      super(messageClass(prototype));
       this.marshaller = marshaller;
     }
 
+    @SuppressWarnings("unchecked") // The class of a T is a Class<T>.
+    private static <T extends Message> Class<T> messageClass(T prototype) {
+      return (Class<T>) prototype.getClass();
+    }
+
     @Override
-    public void serialize(T value, JsonGenerator gen, SerializerProvider provider)
-        throws IOException {
+    public void serialize(T value, JsonGenerator gen, SerializationContext provider) {
       JsonGenerator wrapped =
           new JsonGeneratorWrapper(
               gen,
               (obj, g) -> {
-                JsonSerializer<Object> serializer;
+                ValueSerializer<Object> serializer;
                 try {
                   serializer = provider.findValueSerializer(obj.getClass());
-                } catch (JsonMappingException e) {
+                } catch (DatabindException e) {
                   return false;
                 }
                 if (serializer == null) {
@@ -127,7 +138,26 @@ public final class MessageMarshallerModule extends SimpleModule {
                 serializer.serialize(obj, g, provider);
                 return true;
               });
-      marshaller.writeValue(value, wrapped);
+      try {
+        marshaller.writeValue(value, wrapped);
+      } catch (IOException e) {
+        throw toJacksonException(e, message -> DatabindException.from(gen, message, e));
+      }
     }
+  }
+
+  /**
+   * Jackson 3 serializers and deserializers throw unchecked {@link JacksonException}s. {@link
+   * MessageMarshaller} reports these as {@link IOException}s, so unwrap them, i.e. when thrown by
+   * serializers of nested messages.
+   */
+  private static JacksonException toJacksonException(
+      IOException e, Function<String, JacksonException> factory) {
+    for (Throwable cause = e.getCause(); cause != null; cause = cause.getCause()) {
+      if (cause instanceof JacksonException) {
+        return (JacksonException) cause;
+      }
+    }
+    return factory.apply(String.valueOf(e.getMessage()));
   }
 }

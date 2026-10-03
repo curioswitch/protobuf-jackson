@@ -5,9 +5,9 @@
 
 package org.curioswitch.common.protobuf.json;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.util.JsonParserDelegate;
 import java.io.IOException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.util.JsonParserDelegate;
 
 final class JsonParserWrapper extends JsonParserDelegate {
 

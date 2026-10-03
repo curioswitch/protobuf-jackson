@@ -17,8 +17,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
         test-java-version:
-          - 8
-          - 11
           - 17
           - 21
         protobuf-version:

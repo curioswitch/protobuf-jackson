@@ -5,8 +5,6 @@
 
 package org.curioswitch.common.protobuf.json;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.io.SerializedString;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors.EnumDescriptor;
 import com.google.protobuf.Descriptors.EnumValueDescriptor;
@@ -19,6 +17,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.io.SerializedString;
 
 public final class SerializeSupport {
 

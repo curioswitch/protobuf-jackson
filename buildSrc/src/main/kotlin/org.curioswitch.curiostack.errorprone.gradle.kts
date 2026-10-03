@@ -43,6 +43,17 @@ tasks {
 
         // TODO(chokoswitch): Consider enabling
         disable("CanIgnoreReturnValueSuggester")
+
+        // Suggestions for newer language features, available since targeting Java 17.
+        disable("StatementSwitchToExpressionSwitch")
+        disable("PatternMatchingInstanceof")
+        disable("StringConcatToTextBlock")
+
+        // Jackson 3 throws unchecked JacksonExceptions: IOException is still declared (i.e. for
+        // InvalidProtocolBufferException), and JacksonExceptions are caught to report them as
+        // InvalidProtocolBufferException.
+        disable("CheckedExceptionNotThrown")
+        disable("CatchingUnchecked")
       }
 
       errorprone.nullaway {

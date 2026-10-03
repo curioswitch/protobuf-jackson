@@ -7,18 +7,6 @@ package org.curioswitch.common.protobuf.json;
 
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonParser.Feature;
-import com.fasterxml.jackson.core.PrettyPrinter;
-import com.fasterxml.jackson.core.SerializableString;
-import com.fasterxml.jackson.core.io.CharacterEscapes;
-import com.fasterxml.jackson.core.io.SegmentedStringWriter;
-import com.fasterxml.jackson.core.io.SerializedString;
-import com.fasterxml.jackson.core.util.ByteArrayBuilder;
-import com.fasterxml.jackson.core.util.DefaultIndenter;
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -53,6 +41,22 @@ import org.curioswitch.common.protobuf.json.WellKnownTypeMarshaller.TimestampMar
 import org.curioswitch.common.protobuf.json.WellKnownTypeMarshaller.UInt32ValueMarshaller;
 import org.curioswitch.common.protobuf.json.WellKnownTypeMarshaller.UInt64ValueMarshaller;
 import org.curioswitch.common.protobuf.json.WellKnownTypeMarshaller.ValueMarshaller;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.ObjectWriteContext;
+import tools.jackson.core.PrettyPrinter;
+import tools.jackson.core.SerializableString;
+import tools.jackson.core.TokenStreamFactory;
+import tools.jackson.core.exc.JacksonIOException;
+import tools.jackson.core.io.CharacterEscapes;
+import tools.jackson.core.io.SegmentedStringWriter;
+import tools.jackson.core.io.SerializedString;
+import tools.jackson.core.json.JsonFactory;
+import tools.jackson.core.json.JsonReadFeature;
+import tools.jackson.core.util.ByteArrayBuilder;
+import tools.jackson.core.util.DefaultIndenter;
+import tools.jackson.core.util.DefaultPrettyPrinter;
 
 /**
  * A marshaller of pre-registered {@link Message} types. Specific bytecode for marshalling the
@@ -94,10 +98,12 @@ public class MessageMarshaller {
   private static final SerializedString HTML_ESCAPED_GREATER_THAN = new SerializedString("\\u003e");
 
   private final JsonFactory jsonFactory =
-      new JsonFactory()
-          .enable(Feature.ALLOW_UNQUOTED_FIELD_NAMES)
-          .enable(Feature.ALLOW_COMMENTS)
-          .setCharacterEscapes(
+      JsonFactory.builder()
+          // Allows comparing field names by reference, see ParseSupport.fieldNamesEqual
+          .enable(TokenStreamFactory.Feature.INTERN_PROPERTY_NAMES)
+          .enable(JsonReadFeature.ALLOW_UNQUOTED_PROPERTY_NAMES)
+          .enable(JsonReadFeature.ALLOW_JAVA_COMMENTS)
+          .characterEscapes(
               new CharacterEscapes() {
                 @Override
                 public int[] getEscapeCodesForAscii() {
@@ -124,9 +130,11 @@ public class MessageMarshaller {
                       return null;
                   }
                 }
-              });
+              })
+          .build();
 
-  @Nullable private final PrettyPrinter prettyPrinter;
+  /** Context for generators created by this marshaller, i.e. for pretty printing. */
+  private final ObjectWriteContext writeContext;
 
   private final MarshallerRegistry registry;
 
@@ -147,7 +155,16 @@ public class MessageMarshaller {
       boolean ignoringUnknownFields,
       boolean printingEnumsAsInts,
       boolean sortingMapKeys) {
-    this.prettyPrinter = omittingInsignificantWhitespace ? null : new MessagePrettyPrinter();
+    this.writeContext =
+        omittingInsignificantWhitespace
+            ? ObjectWriteContext.empty()
+            : new ObjectWriteContext.Base() {
+              @Override
+              public PrettyPrinter getPrettyPrinter() {
+                // Pretty printers keep state, so use a new one for each generator.
+                return new MessagePrettyPrinter();
+              }
+            };
     this.registry = registry;
     this.omittingInsignificantWhitespace = omittingInsignificantWhitespace;
     this.includingDefaultValueFields = includingDefaultValueFields;
@@ -167,7 +184,7 @@ public class MessageMarshaller {
   public void mergeValue(byte[] json, Message.Builder builder) throws IOException {
     requireNonNull(json, "json");
     requireNonNull(builder, "builder");
-    try (JsonParser parser = jsonFactory.createParser(json)) {
+    try (JsonParser parser = jsonFactory.createParser(ParseSupport.INTERNING_READ_CONTEXT, json)) {
       mergeValue(parser, builder);
     }
   }
@@ -181,7 +198,7 @@ public class MessageMarshaller {
   public void mergeValue(String json, Message.Builder builder) throws IOException {
     requireNonNull(json, "json");
     requireNonNull(builder, "builder");
-    try (JsonParser parser = jsonFactory.createParser(json)) {
+    try (JsonParser parser = jsonFactory.createParser(ParseSupport.INTERNING_READ_CONTEXT, json)) {
       mergeValue(parser, builder);
     }
   }
@@ -196,8 +213,11 @@ public class MessageMarshaller {
   public void mergeValue(InputStream json, Message.Builder builder) throws IOException {
     requireNonNull(json, "json");
     requireNonNull(builder, "builder");
-    try (JsonParser parser = jsonFactory.createParser(json)) {
+    try (JsonParser parser = jsonFactory.createParser(ParseSupport.INTERNING_READ_CONTEXT, json)) {
       mergeValue(parser, builder);
+    } catch (JacksonIOException e) {
+      // Jackson wraps exceptions of the InputStream
+      throw e.getCause();
     }
   }
 
@@ -218,6 +238,11 @@ public class MessageMarshaller {
       throw e;
     } catch (IOException e) {
       throw new InvalidProtocolBufferException(e);
+    } catch (JacksonIOException e) {
+      // Jackson wraps exceptions of the underlying input or output
+      throw e.getCause();
+    } catch (JacksonException e) {
+      throw invalidProtocolBuffer(e);
     }
   }
 
@@ -229,7 +254,7 @@ public class MessageMarshaller {
   public <T extends Message> byte[] writeValueAsBytes(T message) throws IOException {
     requireNonNull(message, "message");
     ByteArrayBuilder builder = new ByteArrayBuilder(jsonFactory._getBufferRecycler());
-    try (JsonGenerator gen = jsonFactory.createGenerator(builder)) {
+    try (JsonGenerator gen = jsonFactory.createGenerator(writeContext, builder)) {
       writeValue(message, gen);
     }
     return builder.toByteArray();
@@ -243,7 +268,7 @@ public class MessageMarshaller {
   public <T extends Message> String writeValueAsString(T message) throws IOException {
     requireNonNull(message, "message");
     SegmentedStringWriter sw = new SegmentedStringWriter(jsonFactory._getBufferRecycler());
-    try (JsonGenerator gen = jsonFactory.createGenerator(sw)) {
+    try (JsonGenerator gen = jsonFactory.createGenerator(writeContext, sw)) {
       writeValue(message, gen);
     }
     return sw.getAndClear();
@@ -256,13 +281,18 @@ public class MessageMarshaller {
   public <T extends Message> void writeValue(T message, OutputStream out) throws IOException {
     requireNonNull(message, "message");
     requireNonNull(out, "out");
-    try (JsonGenerator gen = jsonFactory.createGenerator(out)) {
+    try (JsonGenerator gen = jsonFactory.createGenerator(writeContext, out)) {
       writeValue(message, gen);
+    } catch (JacksonIOException e) {
+      // Jackson wraps exceptions of the OutputStream
+      throw e.getCause();
     }
   }
 
   /**
    * Converts a {@link Message} into a JSON, writing to the provided {@link JsonGenerator}.
+   * Whitespace is determined by the provided {@link JsonGenerator} (i.e. its {@link PrettyPrinter},
+   * if any), not by {@link Builder#omittingInsignificantWhitespace(boolean)}.
    *
    * @throws InvalidProtocolBufferException if there are unknown Any types in the message.
    */
@@ -273,16 +303,28 @@ public class MessageMarshaller {
     @SuppressWarnings("unchecked")
     TypeSpecificMarshaller<T> serializer =
         (TypeSpecificMarshaller<T>) registry.findForPrototype(message.getDefaultInstanceForType());
-    if (prettyPrinter != null) {
-      gen.setPrettyPrinter(prettyPrinter);
-    }
     try {
       serializer.writeValue(message, gen);
     } catch (InvalidProtocolBufferException e) {
       throw e;
     } catch (IOException e) {
       throw new InvalidProtocolBufferException(e);
+    } catch (JacksonIOException e) {
+      // Jackson wraps exceptions of the underlying input or output
+      throw e.getCause();
+    } catch (JacksonException e) {
+      throw invalidProtocolBuffer(e);
     }
+  }
+
+  /**
+   * Jackson 3 throws unchecked {@link JacksonException}s, i.e. for invalid JSON. Report them as
+   * {@link InvalidProtocolBufferException}, like for Jackson 2.
+   */
+  static InvalidProtocolBufferException invalidProtocolBuffer(JacksonException e) {
+    InvalidProtocolBufferException exception = new InvalidProtocolBufferException(e.getMessage());
+    exception.initCause(e);
+    return exception;
   }
 
   /**
@@ -555,12 +597,12 @@ public class MessageMarshaller {
     }
 
     @Override
-    public void writeObjectFieldValueSeparator(JsonGenerator jg) throws IOException {
+    public void writeObjectNameValueSeparator(JsonGenerator jg) {
       jg.writeRaw(": ");
     }
 
     @Override
-    public void writeEndObject(JsonGenerator jg, int nrOfEntries) throws IOException {
+    public void writeEndObject(JsonGenerator jg, int nrOfEntries) {
       if (!_objectIndenter.isInline()) {
         --_nesting;
       }
@@ -569,10 +611,10 @@ public class MessageMarshaller {
     }
 
     @Override
-    public void beforeArrayValues(JsonGenerator jg) throws IOException {}
+    public void beforeArrayValues(JsonGenerator jg) {}
 
     @Override
-    public void writeEndArray(JsonGenerator gen, int nrOfValues) throws IOException {
+    public void writeEndArray(JsonGenerator gen, int nrOfValues) {
       gen.writeRaw(']');
     }
   }

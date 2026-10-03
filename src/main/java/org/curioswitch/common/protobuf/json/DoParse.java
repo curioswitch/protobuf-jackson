@@ -7,8 +7,6 @@ package org.curioswitch.common.protobuf.json;
 
 import static org.curioswitch.common.protobuf.json.CodeGenUtil.invoke;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.EnumDescriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
@@ -41,6 +39,8 @@ import org.curioswitch.common.protobuf.json.bytebuddy.IfEqual;
 import org.curioswitch.common.protobuf.json.bytebuddy.IfFalse;
 import org.curioswitch.common.protobuf.json.bytebuddy.IfTrue;
 import org.curioswitch.common.protobuf.json.bytebuddy.SetJumpTargetLabel;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
 
 /**
  * {@link ByteCodeAppender} to generate code for parsing a specific {@link Message} type. Iterates
@@ -53,20 +53,22 @@ import org.curioswitch.common.protobuf.json.bytebuddy.SetJumpTargetLabel;
  * int setFieldBits1 = 1;
  *
  * while (!ParseSupport.checkObjectEnd(parser.nextValue()) {
- *   String fieldName = parser.getCurrentName();
- *   // JsonParser returns interned field names, which works well with our class constants.
- *   if (fieldName == "fieldOne" || fieldName == "field_one") {
+ *   String fieldName = parser.currentName();
+ *   if (ParseSupport.fieldNamesEqual(parser, fieldName, "fieldOne")
+ *       || ParseSupport.fieldNamesEqual(parser, fieldName, "field_one")) {
  *     setFieldBits0 = ParseSupport.throwIfFieldAlreadyWritten(
  *         setFieldBits0, 0x1 << (1 % 32 - 1), "fieldOne");
  *     builder.setFieldOne(ParseSupport.parseInt32(parser));
- *   } else if (fieldName == "fieldTwo" || fieldName == "field_two") {
+ *   } else if (ParseSupport.fieldNamesEqual(parser, fieldName, "fieldTwo")
+ *       || ParseSupport.fieldNamesEqual(parser, fieldName, "field_two")) {
  *     setFieldBits0 = ParseSupport.throwIfFieldAlreadyWritten(
  *         setFieldBits0, 0x1 << (2 % 32 - 1), "fieldTwo");
  *     ParseSupport.checkArrayStart();
  *     while (!ParseSupport.checkArrayEnd()) {
  *       builder.addFieldTwo(ParseSupport.parseString(parser));
  *     }
- *   } else if (fieldName == "fieldThirtyThree" || fieldName == "field_thirty) {
+ *   } else if (ParseSupport.fieldNamesEqual(parser, fieldName, "fieldThirtyThree")
+ *       || ParseSupport.fieldNamesEqual(parser, fieldName, "field_thirty_three")) {
  *     setFieldBits1 = ParseSupport.throwIfFieldAlreadyWritten(
  *         setFieldBits1, 0x1 << (33 % 32 - 1), "fieldThirtyThree");
  *     ParseSupport.checkObjectStart();
@@ -154,7 +156,7 @@ final class DoParse implements ByteCodeAppender, Implementation {
 
   static {
     try {
-      Parser_getCurrentName = invoke(JsonParser.class.getDeclaredMethod("getCurrentName"));
+      Parser_getCurrentName = invoke(JsonParser.class.getDeclaredMethod("currentName"));
       Parser_currentToken = invoke(JsonParser.class.getDeclaredMethod("currentToken"));
       Parser_nextValue = invoke(JsonParser.class.getDeclaredMethod("nextValue"));
       Parser_nextToken = invoke(JsonParser.class.getDeclaredMethod("nextToken"));
@@ -312,7 +314,7 @@ final class DoParse implements ByteCodeAppender, Implementation {
     // hash, e.g.,
     // ...
     // while (parser.nextValue() != ParseSupport.checkObjectEnd) {
-    //   fieldName = parser.getCurrentName();
+    //   fieldName = parser.currentName();
     //   fieldNumberUnboxed = FIELD_NUMBERS.get(fieldName):
     //   if (fieldNumberUnboxed == null) {
     //     ParseSupport.throwIfUnknownField(fieldName, descriptor.getFullName());
@@ -341,8 +343,8 @@ final class DoParse implements ByteCodeAppender, Implementation {
       int fieldPreserveVarBitIndex = fieldNumberZeroBased % Integer.SIZE;
 
       // if-statement for checking whether the current JSON field name matches this field, e.g.,
-      // if (fieldName == String.intern(field.getName())
-      //     || fieldName == String.intern(field.getJsonName()) {
+      // if (ParseSupport.fieldNamesEqual(parser, fieldName, field.getJsonName())
+      //     || ParseSupport.fieldNamesEqual(parser, fieldName, field.getName())) {
       //      ...
       // } else if ...
       stackManipulations.addAll(

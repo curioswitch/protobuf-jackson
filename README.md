@@ -4,7 +4,8 @@ protobuf-jackson is a library for efficient marshalling of Protocol Buffer messa
 JSON. It is based on the streaming API of the Jackson JSON handling library and uses Byte Buddy to
 generate efficient bytecode at runtime for marshalling specific message types.
 
-This library requires Java 8 to use.
+This library requires Java 17 and Jackson 3 (`tools.jackson`). For Jackson 2 (and Java 8), use
+version 2.x.
 
 ## Why another Protocol Buffer <-> JSON marshaller
 
@@ -54,6 +55,10 @@ class MessageApi {
   }
 }
 ```
+
+When writing to a provided Jackson `JsonGenerator`, i.e. with `MessageMarshallerModule` in an
+`ObjectMapper`, whitespace is determined by the generator (Jackson 3 generators cannot be given a
+pretty printer once created), not by `omittingInsignificantWhitespace`.
 
 ## Design
 

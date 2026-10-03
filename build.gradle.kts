@@ -31,9 +31,9 @@ nexusPublishing {
 description = "A library for efficient marshalling of Protocol Buffer messages to and from JSON."
 
 dependencies {
-  compileOnly("com.fasterxml.jackson.core:jackson-databind")
+  compileOnly("tools.jackson.core:jackson-databind")
 
-  api("com.fasterxml.jackson.core:jackson-core")
+  api("tools.jackson.core:jackson-core")
   api("com.google.protobuf:protobuf-java")
 
   implementation("net.bytebuddy:byte-buddy")
@@ -53,7 +53,7 @@ testing {
         implementation(project())
         implementation(project(":testing"))
 
-        implementation("com.fasterxml.jackson.core:jackson-databind")
+        implementation("tools.jackson.core:jackson-databind")
         implementation("com.google.guava:guava")
         implementation("com.google.protobuf:protobuf-java-util")
       }
@@ -64,7 +64,7 @@ testing {
 tasks {
   withType<JavaCompile>().configureEach {
     with(options) {
-      release.set(8)
+      release.set(17)
     }
   }
 

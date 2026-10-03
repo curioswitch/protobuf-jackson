@@ -5,10 +5,6 @@
 
 package org.curioswitch.common.protobuf.json;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.core.io.SerializedString;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
@@ -30,6 +26,10 @@ import net.bytebuddy.description.type.TypeDefinition;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.jar.asm.ClassWriter;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.core.io.SerializedString;
 
 /**
  * Abstract class for protobuf marshallers. Subclasses implement serialization and parsing logic
@@ -64,7 +64,7 @@ public abstract class TypeSpecificMarshaller<T extends Message> {
     }
     if (json != JsonToken.START_OBJECT) {
       throw new InvalidProtocolBufferException(
-          "Expected start of object, got: " + parser.getText());
+          "Expected start of object, got: " + parser.getString());
     }
     doMerge(parser, currentDepth, builder);
     // Object end will be handled in ParseSupport.checkObjectEnd.

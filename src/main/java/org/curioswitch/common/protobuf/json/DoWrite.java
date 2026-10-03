@@ -6,9 +6,8 @@
 package org.curioswitch.common.protobuf.json;
 
 import static org.curioswitch.common.protobuf.json.CodeGenUtil.invoke;
+import static org.curioswitch.common.protobuf.json.CodeGenUtil.invokeIgnoringResult;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.SerializableString;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.EnumDescriptor;
@@ -50,6 +49,8 @@ import org.curioswitch.common.protobuf.json.bytebuddy.IfEqual;
 import org.curioswitch.common.protobuf.json.bytebuddy.IfFalse;
 import org.curioswitch.common.protobuf.json.bytebuddy.IfIntsNotEqual;
 import org.curioswitch.common.protobuf.json.bytebuddy.SetJumpTargetLabel;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.SerializableString;
 
 /**
  * {@link ByteCodeAppender} to generate code for serializing a specific {@link Message} type. For
@@ -66,7 +67,7 @@ import org.curioswitch.common.protobuf.json.bytebuddy.SetJumpTargetLabel;
  * }
  * if (message.getFieldThreeCount() != 0) {
  *   for (Map.Entry<Integer, String> entry : message.getFieldThreeMap()) {
- *     gen.writeFieldName(Integer.toString(SerializesSupport.normalizeInt32(entry.getKey()));
+ *     gen.writeName(Integer.toString(SerializesSupport.normalizeInt32(entry.getKey()));
  *     SerializeSupport.printString(entry.getValue());
  *   }
  * }
@@ -133,13 +134,14 @@ final class DoWrite implements ByteCodeAppender, Implementation {
   static {
     try {
       JsonGenerator_writeFieldName_SerializableString =
-          invoke(JsonGenerator.class.getDeclaredMethod("writeFieldName", SerializableString.class));
+          invokeIgnoringResult(
+              JsonGenerator.class.getDeclaredMethod("writeName", SerializableString.class));
       JsonGenerator_writeFieldName_String =
-          invoke(JsonGenerator.class.getDeclaredMethod("writeFieldName", String.class));
+          invokeIgnoringResult(JsonGenerator.class.getDeclaredMethod("writeName", String.class));
       JsonGenerator_writeStartObject =
-          invoke(JsonGenerator.class.getDeclaredMethod("writeStartObject"));
+          invokeIgnoringResult(JsonGenerator.class.getDeclaredMethod("writeStartObject"));
       JsonGenerator_writeEndObject =
-          invoke(JsonGenerator.class.getDeclaredMethod("writeEndObject"));
+          invokeIgnoringResult(JsonGenerator.class.getDeclaredMethod("writeEndObject"));
 
       Object_equals = invoke(Object.class.getDeclaredMethod("equals", Object.class));
 
@@ -369,7 +371,7 @@ final class DoWrite implements ByteCodeAppender, Implementation {
       // gen.writeStartObject();
       // for (Map.Entry<K, V> entry : message.getFooMap().entrySet()) {
       //    String key = keyToString(entry.getKey());
-      //    gen.writeFieldName(key);
+      //    gen.writeName(key);
       //    SerializeSupport.printFoo(gen, entry.getValue());
       // }
       // gen.writeEndObject();
